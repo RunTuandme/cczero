@@ -33,6 +33,7 @@ add_executable(cczero
         src/neural/loader.cc
         src/neural/loader.h
         src/neural/network.h
+        src/neural/network_cudnn.cu
         src/neural/writer.cc
         src/neural/writer.h
         src/selfplay/game.cc

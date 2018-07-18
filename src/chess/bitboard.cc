@@ -259,11 +259,11 @@ const Move kIdxToMove[] = {
     "h7h8r", "h7h8b"};
 
 std::vector<unsigned short> BuildMoveIndices() {
-  std::vector<unsigned short> res(4 * 64 * 64);
-  for (size_t i = 0; i < sizeof(kIdxToMove) / sizeof(kIdxToMove[0]); ++i) {
-    res[kIdxToMove[i].as_packed_int()] = i;
-  }
-  return res;
+    std::vector<unsigned short> res(4 * 64 * 64);
+    for (size_t i = 0; i < sizeof(kIdxToMove) / sizeof(kIdxToMove[0]); ++i) {
+        res[kIdxToMove[i].as_packed_int()] = i;
+    }
+    return res;
 }
 
 const std::vector<unsigned short> kMoveToIdx = BuildMoveIndices();
@@ -274,47 +274,47 @@ const int kQueenCastleIndex =
 }  // namespace
 
 Move::Move(const std::string& str, bool black) {
-  if (str.size() < 4) throw Exception("Bad move: " + str);
-  SetFrom(BoardSquare(str.substr(0, 2), black));
-  SetTo(BoardSquare(str.substr(2, 2), black));
-  if (str.size() != 4) {
-    if (str.size() != 5) throw Exception("Bad move: " + str);
-    switch (str[4]) {
-      case 'q':
-      case 'Q':
-        SetPromotion(Promotion::Queen);
-        break;
-      case 'r':
-      case 'R':
-        SetPromotion(Promotion::Rook);
-        break;
-      case 'b':
-      case 'B':
-        SetPromotion(Promotion::Bishop);
-        break;
-      case 'n':
-      case 'N':
-        SetPromotion(Promotion::Knight);
-        break;
-      default:
-        throw Exception("Bad move: " + str);
+    if (str.size() < 4) throw Exception("Bad move: " + str);
+    SetFrom(BoardSquare(str.substr(0, 2), black));
+    SetTo(BoardSquare(str.substr(2, 2), black));
+    if (str.size() != 4) {
+        if (str.size() != 5) throw Exception("Bad move: " + str);
+        switch (str[4]) {
+            case 'q':
+            case 'Q':
+                SetPromotion(Promotion::Queen);
+                break;
+            case 'r':
+            case 'R':
+                SetPromotion(Promotion::Rook);
+                break;
+            case 'b':
+            case 'B':
+                SetPromotion(Promotion::Bishop);
+                break;
+            case 'n':
+            case 'N':
+                SetPromotion(Promotion::Knight);
+                break;
+            default:
+                throw Exception("Bad move: " + str);
+        }
     }
-  }
 }
 
 uint16_t Move::as_packed_int() const {
-  if (promotion() == Promotion::Knight) {
-    return from().as_int() * 64 + to().as_int();
-  } else {
-    return static_cast<int>(promotion()) * 64 * 64 + from().as_int() * 64 +
-           to().as_int();
-  }
+    if (promotion() == Promotion::Knight) {
+        return from().as_int() * 64 + to().as_int();
+    } else {
+        return static_cast<int>(promotion()) * 64 * 64 + from().as_int() * 64 +
+               to().as_int();
+    }
 }
 
 uint16_t Move::as_nn_index() const {
-  if (!castling()) return kMoveToIdx[as_packed_int()];
-  if (from().col() < to().col()) return kKingCastleIndex;
-  return kQueenCastleIndex;
+    if (!castling()) return kMoveToIdx[as_packed_int()];
+    if (from().col() < to().col()) return kKingCastleIndex;
+    return kQueenCastleIndex;
 }
 
 }  // namespace cczero

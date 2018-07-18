@@ -24,7 +24,7 @@ namespace cczero {
 
 // Exception to throw around.
 class Exception : public std::runtime_error {
-  using std::runtime_error::runtime_error;
+    using std::runtime_error::runtime_error;
 };
 
 }  // namespace cczero

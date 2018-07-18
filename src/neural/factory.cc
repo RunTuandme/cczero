@@ -24,37 +24,37 @@
 namespace cczero {
 
 NetworkFactory* NetworkFactory::Get() {
-  static NetworkFactory factory;
-  return &factory;
+    static NetworkFactory factory;
+    return &factory;
 }
 
 NetworkFactory::Register::Register(const std::string& name, FactoryFunc factory,
                                    int priority) {
-  NetworkFactory::Get()->RegisterNetwork(name, factory, priority);
+    NetworkFactory::Get()->RegisterNetwork(name, factory, priority);
 }
 
 void NetworkFactory::RegisterNetwork(const std::string& name,
                                      FactoryFunc factory, int priority) {
-  factories_.emplace_back(name, factory, priority);
-  std::sort(factories_.begin(), factories_.end());
+    factories_.emplace_back(name, factory, priority);
+    std::sort(factories_.begin(), factories_.end());
 }
 
 std::vector<std::string> NetworkFactory::GetBackendsList() const {
-  std::vector<std::string> result;
-  for (const auto& x : factories_) result.emplace_back(x.name);
-  return result;
+    std::vector<std::string> result;
+    for (const auto& x : factories_) result.emplace_back(x.name);
+    return result;
 }
 
 std::unique_ptr<Network> NetworkFactory::Create(const std::string& network,
                                                 const Weights& weights,
                                                 const OptionsDict& options) {
-  std::cerr << "Creating backend [" << network << "]..." << std::endl;
-  for (const auto& factory : factories_) {
-    if (factory.name == network) {
-      return factory.factory(weights, options);
+    std::cerr << "Creating backend [" << network << "]..." << std::endl;
+    for (const auto& factory : factories_) {
+        if (factory.name == network) {
+            return factory.factory(weights, options);
+        }
     }
-  }
-  throw Exception("Unknown backend: " + network);
+    throw Exception("Unknown backend: " + network);
 }
 
 }  // namespace cczero

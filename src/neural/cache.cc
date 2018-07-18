@@ -25,78 +25,78 @@ CachingComputation::CachingComputation(
     : parent_(std::move(parent)), cache_(cache) {}
 
 int CachingComputation::GetCacheMisses() const {
-  return parent_->GetBatchSize();
+    return parent_->GetBatchSize();
 }
 
 int CachingComputation::GetBatchSize() const { return batch_.size(); }
 
 bool CachingComputation::AddInputByHash(uint64_t hash) {
-  NNCacheLock lock(cache_, hash);
-  if (!lock) return false;
-  batch_.emplace_back();
-  batch_.back().lock = std::move(lock);
-  batch_.back().hash = hash;
-  return true;
+    NNCacheLock lock(cache_, hash);
+    if (!lock) return false;
+    batch_.emplace_back();
+    batch_.back().lock = std::move(lock);
+    batch_.back().hash = hash;
+    return true;
 }
 
 void CachingComputation::AddInput(
     uint64_t hash, InputPlanes&& input,
     std::vector<uint16_t>&& probabilities_to_cache) {
-  if (AddInputByHash(hash)) return;
-  batch_.emplace_back();
-  batch_.back().hash = hash;
-  batch_.back().idx_in_parent = parent_->GetBatchSize();
-  batch_.back().probabilities_to_cache = probabilities_to_cache;
-  parent_->AddInput(std::move(input));
+    if (AddInputByHash(hash)) return;
+    batch_.emplace_back();
+    batch_.back().hash = hash;
+    batch_.back().idx_in_parent = parent_->GetBatchSize();
+    batch_.back().probabilities_to_cache = probabilities_to_cache;
+    parent_->AddInput(std::move(input));
 }
 
 void CachingComputation::PopLastInputHit() {
-  assert(!batch_.empty());
-  assert(batch_.back().idx_in_parent == -1);
-  batch_.pop_back();
+    assert(!batch_.empty());
+    assert(batch_.back().idx_in_parent == -1);
+    batch_.pop_back();
 }
 
 void CachingComputation::ComputeBlocking() {
-  if (parent_->GetBatchSize() == 0) return;
-  parent_->ComputeBlocking();
+    if (parent_->GetBatchSize() == 0) return;
+    parent_->ComputeBlocking();
 
-  // Fill cache with data from NN.
-  for (const auto& item : batch_) {
-    if (item.idx_in_parent == -1) continue;
-    auto req =
-        std::make_unique<CachedNNRequest>(item.probabilities_to_cache.size());
-    req->q = parent_->GetQVal(item.idx_in_parent);
-    int idx = 0;
-    for (auto x : item.probabilities_to_cache) {
-      req->p[idx++] =
-          std::make_pair(x, parent_->GetPVal(item.idx_in_parent, x));
+    // Fill cache with data from NN.
+    for (const auto& item : batch_) {
+        if (item.idx_in_parent == -1) continue;
+        auto req = std::make_unique<CachedNNRequest>(
+            item.probabilities_to_cache.size());
+        req->q = parent_->GetQVal(item.idx_in_parent);
+        int idx = 0;
+        for (auto x : item.probabilities_to_cache) {
+            req->p[idx++] =
+                std::make_pair(x, parent_->GetPVal(item.idx_in_parent, x));
+        }
+        cache_->Insert(item.hash, std::move(req));
     }
-    cache_->Insert(item.hash, std::move(req));
-  }
 }
 
 float CachingComputation::GetQVal(int sample) const {
-  const auto& item = batch_[sample];
-  if (item.idx_in_parent >= 0) return parent_->GetQVal(item.idx_in_parent);
-  return item.lock->q;
+    const auto& item = batch_[sample];
+    if (item.idx_in_parent >= 0) return parent_->GetQVal(item.idx_in_parent);
+    return item.lock->q;
 }
 
 float CachingComputation::GetPVal(int sample, int move_id) const {
-  auto& item = batch_[sample];
-  if (item.idx_in_parent >= 0)
-    return parent_->GetPVal(item.idx_in_parent, move_id);
-  const auto& moves = item.lock->p;
+    auto& item = batch_[sample];
+    if (item.idx_in_parent >= 0)
+        return parent_->GetPVal(item.idx_in_parent, move_id);
+    const auto& moves = item.lock->p;
 
-  int total_count = 0;
-  while (total_count < moves.size()) {
-    // Optimization: usually moves are stored in the same order as queried.
-    const auto& move = moves[item.last_idx++];
-    if (item.last_idx == moves.size()) item.last_idx = 0;
-    if (move.first == move_id) return move.second;
-    ++total_count;
-  }
-  assert(false);  // Move not found.
-  return 0;
+    int total_count = 0;
+    while (total_count < moves.size()) {
+        // Optimization: usually moves are stored in the same order as queried.
+        const auto& move = moves[item.last_idx++];
+        if (item.last_idx == moves.size()) item.last_idx = 0;
+        if (move.first == move_id) return move.second;
+        ++total_count;
+    }
+    assert(false);  // Move not found.
+    return 0;
 }
 
 }  // namespace cczero

@@ -25,41 +25,41 @@
 namespace cczero {
 
 void CreateDirectory(const std::string& path) {
-  if (CreateDirectoryA(path.c_str(), nullptr)) return;
-  if (GetLastError() != ERROR_ALREADY_EXISTS) {
-    throw Exception("Cannot create directory: " + path);
-  }
+    if (CreateDirectoryA(path.c_str(), nullptr)) return;
+    if (GetLastError() != ERROR_ALREADY_EXISTS) {
+        throw Exception("Cannot create directory: " + path);
+    }
 }
 
 std::vector<std::string> GetFileList(const std::string& directory) {
-  std::vector<std::string> result;
-  WIN32_FIND_DATAA dir;
-  auto handle = FindFirstFileA((directory + "\\*").c_str(), &dir);
-  if (handle == INVALID_HANDLE_VALUE) return result;
-  do {
-    if ((dir.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
-      result.emplace_back(dir.cFileName);
-    }
-  } while (FindNextFile(handle, &dir) != 0);
-  FindClose(handle);
-  return result;
+    std::vector<std::string> result;
+    WIN32_FIND_DATAA dir;
+    auto handle = FindFirstFileA((directory + "\\*").c_str(), &dir);
+    if (handle == INVALID_HANDLE_VALUE) return result;
+    do {
+        if ((dir.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+            result.emplace_back(dir.cFileName);
+        }
+    } while (FindNextFile(handle, &dir) != 0);
+    FindClose(handle);
+    return result;
 }
 
 uint64_t GetFileSize(const std::string& filename) {
-  WIN32_FILE_ATTRIBUTE_DATA s;
-  if (!GetFileAttributesExA(filename.c_str(), GetFileExInfoStandard, &s)) {
-    throw Exception("Cannot stat file: " + filename);
-  }
-  return (static_cast<uint64_t>(s.nFileSizeHigh) << 32) + s.nFileSizeLow;
+    WIN32_FILE_ATTRIBUTE_DATA s;
+    if (!GetFileAttributesExA(filename.c_str(), GetFileExInfoStandard, &s)) {
+        throw Exception("Cannot stat file: " + filename);
+    }
+    return (static_cast<uint64_t>(s.nFileSizeHigh) << 32) + s.nFileSizeLow;
 }
 
 time_t GetFileTime(const std::string& filename) {
-  WIN32_FILE_ATTRIBUTE_DATA s;
-  if (!GetFileAttributesExA(filename.c_str(), GetFileExInfoStandard, &s)) {
-    throw Exception("Cannot stat file: " + filename);
-  }
-  return (static_cast<uint64_t>(s.ftLastWriteTime.dwHighDateTime)
-         << 32) + s.ftLastWriteTime.dwLowDateTime;
+    WIN32_FILE_ATTRIBUTE_DATA s;
+    if (!GetFileAttributesExA(filename.c_str(), GetFileExInfoStandard, &s)) {
+        throw Exception("Cannot stat file: " + filename);
+    }
+    return (static_cast<uint64_t>(s.ftLastWriteTime.dwHighDateTime) << 32) +
+           s.ftLastWriteTime.dwLowDateTime;
 }
 
 }  // namespace cczero

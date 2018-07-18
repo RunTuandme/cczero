@@ -26,64 +26,66 @@
 namespace cczero {
 
 class NetworkFactory {
- public:
-  using FactoryFunc = std::function<std::unique_ptr<Network>(
-      const Weights&, const OptionsDict&)>;
-
-  static NetworkFactory* Get();
-
-  // Registers network so it can be created by name.
-  // @name -- name
-  // @options -- options to pass to the network
-  // @priority -- how high should be the network in the list. The network with
-  //              the highest priority is the default.
-  class Register {
    public:
-    Register(const std::string& name, FactoryFunc factory, int priority = 0);
-  };
+    using FactoryFunc = std::function<std::unique_ptr<Network>(
+        const Weights&, const OptionsDict&)>;
 
-  // Returns list of backend names, sorted by priority (higher priority first).
-  std::vector<std::string> GetBackendsList() const;
+    static NetworkFactory* Get();
 
-  // Creates a backend given name and config.
-  std::unique_ptr<Network> Create(const std::string& network, const Weights&,
-                                  const OptionsDict& options);
+    // Registers network so it can be created by name.
+    // @name -- name
+    // @options -- options to pass to the network
+    // @priority -- how high should be the network in the list. The network with
+    //              the highest priority is the default.
+    class Register {
+       public:
+        Register(const std::string& name, FactoryFunc factory,
+                 int priority = 0);
+    };
 
- private:
-  void RegisterNetwork(const std::string& name, FactoryFunc factory,
-                       int priority);
+    // Returns list of backend names, sorted by priority (higher priority
+    // first).
+    std::vector<std::string> GetBackendsList() const;
 
-  NetworkFactory() {}
+    // Creates a backend given name and config.
+    std::unique_ptr<Network> Create(const std::string& network, const Weights&,
+                                    const OptionsDict& options);
 
-  struct Factory {
-    Factory(const std::string& name, FactoryFunc factory, int priority)
-        : name(name), factory(factory), priority(priority) {}
+   private:
+    void RegisterNetwork(const std::string& name, FactoryFunc factory,
+                         int priority);
 
-    bool operator<(const Factory& other) const {
-      if (priority != other.priority) return priority > other.priority;
-      return name < other.name;
-    }
+    NetworkFactory() {}
 
-    std::string name;
-    FactoryFunc factory;
-    int priority;
-  };
+    struct Factory {
+        Factory(const std::string& name, FactoryFunc factory, int priority)
+            : name(name), factory(factory), priority(priority) {}
 
-  std::vector<Factory> factories_;
-  friend class Register;
+        bool operator<(const Factory& other) const {
+            if (priority != other.priority) return priority > other.priority;
+            return name < other.name;
+        }
+
+        std::string name;
+        FactoryFunc factory;
+        int priority;
+    };
+
+    std::vector<Factory> factories_;
+    friend class Register;
 };
 
 #define REGISTER_NETWORK_WITH_COUNTER2(name, cls, priority, counter) \
-  namespace {                                                        \
-  static NetworkFactory::Register regH38fhs##counter(                \
-      name,                                                          \
-      [](const Weights& w, const OptionsDict& o) {                   \
-        return std::make_unique<cls>(w, o);                          \
-      },                                                             \
-      priority);                                                     \
-  }
+    namespace {                                                      \
+    static NetworkFactory::Register regH38fhs##counter(              \
+        name,                                                        \
+        [](const Weights& w, const OptionsDict& o) {                 \
+            return std::make_unique<cls>(w, o);                      \
+        },                                                           \
+        priority);                                                   \
+    }
 #define REGISTER_NETWORK_WITH_COUNTER(name, cls, priority, counter) \
-  REGISTER_NETWORK_WITH_COUNTER2(name, cls, priority, counter)
+    REGISTER_NETWORK_WITH_COUNTER2(name, cls, priority, counter)
 
 // Registers a Network.
 // Constructor of a network class must have parameters:
@@ -93,5 +95,5 @@ class NetworkFactory {
 // @priority -- numeric priority of a backend. Higher is higher, highest number
 // is the default backend.
 #define REGISTER_NETWORK(name, cls, priority) \
-  REGISTER_NETWORK_WITH_COUNTER(name, cls, priority, __LINE__)
+    REGISTER_NETWORK_WITH_COUNTER(name, cls, priority, __LINE__)
 }  // namespace cczero

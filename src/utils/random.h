@@ -25,21 +25,21 @@
 namespace cczero {
 
 class Random {
- public:
-  static Random& Get();
-  double GetDouble(double max_val);
-  float GetFloat(float max_val);
-  double GetGamma(double alpha, double beta);
-  // Both sides are included.
-  int GetInt(int min, int max);
-  std::string GetString(int length);
-  bool GetBool();
+   public:
+    static Random& Get();
+    double GetDouble(double max_val);
+    float GetFloat(float max_val);
+    double GetGamma(double alpha, double beta);
+    // Both sides are included.
+    int GetInt(int min, int max);
+    std::string GetString(int length);
+    bool GetBool();
 
- private:
-  Random();
+   private:
+    Random();
 
-  Mutex mutex_;
-  std::mt19937 gen_ GUARDED_BY(mutex_);
+    Mutex mutex_;
+    std::mt19937 gen_ GUARDED_BY(mutex_);
 };
 
 }  // namespace cczero

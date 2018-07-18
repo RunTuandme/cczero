@@ -25,225 +25,224 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include "proto/net.pb.h"
 #include "utils/commandline.h"
 #include "utils/exception.h"
 #include "utils/filesystem.h"
-#include "proto/net.pb.h"
 #include "version.inc"
-
-
 
 namespace cczero {
 
 namespace {
 void PopulateLastIntoVector(FloatVectors* vecs, Weights::Vec* out) {
-  *out = std::move(vecs->back());
-  vecs->pop_back();
+    *out = std::move(vecs->back());
+    vecs->pop_back();
 }
 
 void PopulateConvBlockWeights(FloatVectors* vecs, Weights::ConvBlock* block) {
-  PopulateLastIntoVector(vecs, &block->bn_stddivs);
-  PopulateLastIntoVector(vecs, &block->bn_means);
-  PopulateLastIntoVector(vecs, &block->biases);
-  PopulateLastIntoVector(vecs, &block->weights);
+    PopulateLastIntoVector(vecs, &block->bn_stddivs);
+    PopulateLastIntoVector(vecs, &block->bn_means);
+    PopulateLastIntoVector(vecs, &block->biases);
+    PopulateLastIntoVector(vecs, &block->weights);
 }
 
 std::string DecompressGzip(const std::string& filename) {
-  const int kStartingSize = 8 * 1024 * 1024;  // 8M
-  std::string buffer;
-  buffer.resize(kStartingSize);
-  int bytes_read = 0;
+    const int kStartingSize = 8 * 1024 * 1024;  // 8M
+    std::string buffer;
+    buffer.resize(kStartingSize);
+    int bytes_read = 0;
 
-  // Read whole file into a buffer.
-  gzFile file = gzopen(filename.c_str(), "rb");
-  if (!file) throw cczero::Exception("Cannot read weights from " + filename);
-  while (true) {
-    int sz = gzread(file, &buffer[bytes_read], buffer.size() - bytes_read);
-    if (sz == static_cast<int>(buffer.size()) - bytes_read) {
-      bytes_read = buffer.size();
-      buffer.resize(buffer.size() * 2);
-    } else {
-      bytes_read += sz;
-      buffer.resize(bytes_read);
-      break;
+    // Read whole file into a buffer.
+    gzFile file = gzopen(filename.c_str(), "rb");
+    if (!file) throw cczero::Exception("Cannot read weights from " + filename);
+    while (true) {
+        int sz = gzread(file, &buffer[bytes_read], buffer.size() - bytes_read);
+        if (sz == static_cast<int>(buffer.size()) - bytes_read) {
+            bytes_read = buffer.size();
+            buffer.resize(buffer.size() * 2);
+        } else {
+            bytes_read += sz;
+            buffer.resize(bytes_read);
+            break;
+        }
     }
-  }
-  gzclose(file);
+    gzclose(file);
 
-  return buffer;
+    return buffer;
 }
 
 FloatVector DenormLayer(const pbcczero::Weights_Layer& layer) {
-  FloatVector vec;
-  auto& buffer = layer.params();
-  auto data = reinterpret_cast<const std::uint16_t*>(buffer.data());
-  int n = buffer.length() / 2;
-  vec.resize(n);
-  for (int i = 0; i < n; i++) {
-    vec[i] = data[i] / float(0xffff);
-    vec[i] *= layer.max_val() - layer.min_val();
-    vec[i] += layer.min_val();
-  }
-  return vec;
+    FloatVector vec;
+    auto& buffer = layer.params();
+    auto data = reinterpret_cast<const std::uint16_t*>(buffer.data());
+    int n = buffer.length() / 2;
+    vec.resize(n);
+    for (int i = 0; i < n; i++) {
+        vec[i] = data[i] / float(0xffff);
+        vec[i] *= layer.max_val() - layer.min_val();
+        vec[i] += layer.min_val();
+    }
+    return vec;
 }
 
-void DenormConvBlock(const pbcczero::Weights_ConvBlock& conv, FloatVectors* vecs) {
-  vecs->emplace_back(DenormLayer(conv.weights()));
-  vecs->emplace_back(DenormLayer(conv.biases()));
-  vecs->emplace_back(DenormLayer(conv.bn_means()));
-  vecs->emplace_back(DenormLayer(conv.bn_stddivs()));
+void DenormConvBlock(const pbcczero::Weights_ConvBlock& conv,
+                     FloatVectors* vecs) {
+    vecs->emplace_back(DenormLayer(conv.weights()));
+    vecs->emplace_back(DenormLayer(conv.biases()));
+    vecs->emplace_back(DenormLayer(conv.bn_means()));
+    vecs->emplace_back(DenormLayer(conv.bn_stddivs()));
 }
 
-} // namespace 
-
+}  // namespace
 
 FloatVectors LoadFloatsFromPbFile(const std::string& buffer) {
-  auto net = pbcczero::Net();
-  FloatVectors vecs;
-  net.ParseFromString(buffer);
+    auto net = pbcczero::Net();
+    FloatVectors vecs;
+    net.ParseFromString(buffer);
 
-  std::string min_version(std::to_string(net.min_version().major()) + ".");
-  min_version += std::to_string(net.min_version().minor()) + ".";
-  min_version += std::to_string(net.min_version().patch());
+    std::string min_version(std::to_string(net.min_version().major()) + ".");
+    min_version += std::to_string(net.min_version().minor()) + ".";
+    min_version += std::to_string(net.min_version().patch());
 
-  if (net.min_version().major() > CC0_VERSION_MAJOR)
-    throw Exception("Weights require at least cc0 version: " + min_version);
-  if (net.min_version().minor() > CC0_VERSION_MINOR)
-    throw Exception("Weights require at least cc0 version: " + min_version);
-  if (net.min_version().patch() > CC0_VERSION_PATCH)
-    throw Exception("Weights require at least cc0 version: " + min_version);
+    if (net.min_version().major() > CC0_VERSION_MAJOR)
+        throw Exception("Weights require at least cc0 version: " + min_version);
+    if (net.min_version().minor() > CC0_VERSION_MINOR)
+        throw Exception("Weights require at least cc0 version: " + min_version);
+    if (net.min_version().patch() > CC0_VERSION_PATCH)
+        throw Exception("Weights require at least cc0 version: " + min_version);
 
-  if (net.format().weights_encoding() != pbcczero::Format::LINEAR16)
-    throw Exception("Invalid weight encoding");
+    if (net.format().weights_encoding() != pbcczero::Format::LINEAR16)
+        throw Exception("Invalid weight encoding");
 
-  const auto& w = net.weights();
+    const auto& w = net.weights();
 
-  DenormConvBlock(w.input(), &vecs);
+    DenormConvBlock(w.input(), &vecs);
 
-  for (int i = 0, n = w.residual_size(); i < n; i++) {
-    DenormConvBlock(w.residual(i).conv1(), &vecs);
-    DenormConvBlock(w.residual(i).conv2(), &vecs);
-  }
+    for (int i = 0, n = w.residual_size(); i < n; i++) {
+        DenormConvBlock(w.residual(i).conv1(), &vecs);
+        DenormConvBlock(w.residual(i).conv2(), &vecs);
+    }
 
-  DenormConvBlock(w.policy(), &vecs);
-  vecs.emplace_back(DenormLayer(w.ip_pol_w()));
-  vecs.emplace_back(DenormLayer(w.ip_pol_b()));
-  DenormConvBlock(w.value(), &vecs);
-  vecs.emplace_back(DenormLayer(w.ip1_val_w()));
-  vecs.emplace_back(DenormLayer(w.ip1_val_b()));
-  vecs.emplace_back(DenormLayer(w.ip2_val_w()));
-  vecs.emplace_back(DenormLayer(w.ip2_val_b()));
+    DenormConvBlock(w.policy(), &vecs);
+    vecs.emplace_back(DenormLayer(w.ip_pol_w()));
+    vecs.emplace_back(DenormLayer(w.ip_pol_b()));
+    DenormConvBlock(w.value(), &vecs);
+    vecs.emplace_back(DenormLayer(w.ip1_val_w()));
+    vecs.emplace_back(DenormLayer(w.ip1_val_b()));
+    vecs.emplace_back(DenormLayer(w.ip2_val_w()));
+    vecs.emplace_back(DenormLayer(w.ip2_val_b()));
 
-  return vecs;
+    return vecs;
 }
 
 FloatVectors LoadFloatsFromFile(std::string* buffer) {
-  // Parse buffer.
-  FloatVectors result;
-  FloatVector line;
-  (*buffer) += "\n";
-  size_t start = 0;
-  for (size_t i = 0; i < buffer->size(); ++i) {
-    char& c = (*buffer)[i];
-    const bool is_newline = (c == '\n' || c == '\r');
-    if (!std::isspace(c)) continue;
-    if (start < i) {
-      // If previous character was not space too.
-      c = '\0';
-      line.push_back(std::atof(&(*buffer)[start]));
+    // Parse buffer.
+    FloatVectors result;
+    FloatVector line;
+    (*buffer) += "\n";
+    size_t start = 0;
+    for (size_t i = 0; i < buffer->size(); ++i) {
+        char& c = (*buffer)[i];
+        const bool is_newline = (c == '\n' || c == '\r');
+        if (!std::isspace(c)) continue;
+        if (start < i) {
+            // If previous character was not space too.
+            c = '\0';
+            line.push_back(std::atof(&(*buffer)[start]));
+        }
+        if (is_newline && !line.empty()) {
+            result.emplace_back();
+            result.back().swap(line);
+        }
+        start = i + 1;
     }
-    if (is_newline && !line.empty()) {
-      result.emplace_back();
-      result.back().swap(line);
-    }
-    start = i + 1;
-  }
 
-  result.erase(result.begin());
-  return result;
+    result.erase(result.begin());
+    return result;
 }
 
 Weights LoadWeightsFromFile(const std::string& filename) {
-  FloatVectors vecs;
-  auto buffer = DecompressGzip(filename);
+    FloatVectors vecs;
+    auto buffer = DecompressGzip(filename);
 
-  if (buffer.size() < 2)
-    throw Exception("Weight file invalid");
-  else if (buffer[0] == '1' && buffer[1] == '\n')
-    throw Exception("Weight file no longer supported");
-  else if (buffer[0] == '2' && buffer[1] == '\n')
-    vecs = LoadFloatsFromFile(&buffer);
-  else
-    vecs = LoadFloatsFromPbFile(buffer);
+    if (buffer.size() < 2)
+        throw Exception("Weight file invalid");
+    else if (buffer[0] == '1' && buffer[1] == '\n')
+        throw Exception("Weight file no longer supported");
+    else if (buffer[0] == '2' && buffer[1] == '\n')
+        vecs = LoadFloatsFromFile(&buffer);
+    else
+        vecs = LoadFloatsFromPbFile(buffer);
 
-  Weights result;
-  // Populating backwards.
-  PopulateLastIntoVector(&vecs, &result.ip2_val_b);
-  PopulateLastIntoVector(&vecs, &result.ip2_val_w);
-  PopulateLastIntoVector(&vecs, &result.ip1_val_b);
-  PopulateLastIntoVector(&vecs, &result.ip1_val_w);
-  PopulateConvBlockWeights(&vecs, &result.value);
+    Weights result;
+    // Populating backwards.
+    PopulateLastIntoVector(&vecs, &result.ip2_val_b);
+    PopulateLastIntoVector(&vecs, &result.ip2_val_w);
+    PopulateLastIntoVector(&vecs, &result.ip1_val_b);
+    PopulateLastIntoVector(&vecs, &result.ip1_val_w);
+    PopulateConvBlockWeights(&vecs, &result.value);
 
-  PopulateLastIntoVector(&vecs, &result.ip_pol_b);
-  PopulateLastIntoVector(&vecs, &result.ip_pol_w);
-  PopulateConvBlockWeights(&vecs, &result.policy);
+    PopulateLastIntoVector(&vecs, &result.ip_pol_b);
+    PopulateLastIntoVector(&vecs, &result.ip_pol_w);
+    PopulateConvBlockWeights(&vecs, &result.policy);
 
-  // Version, Input + all the residual should be left.
-  if ((vecs.size() - 4) % 8 != 0)
-    throw Exception("Bad number of lines in weights file");
+    // Version, Input + all the residual should be left.
+    if ((vecs.size() - 4) % 8 != 0)
+        throw Exception("Bad number of lines in weights file");
 
-  const int num_residual = (vecs.size() - 4) / 8;
-  result.residual.resize(num_residual);
-  for (int i = num_residual - 1; i >= 0; --i) {
-    PopulateConvBlockWeights(&vecs, &result.residual[i].conv2);
-    PopulateConvBlockWeights(&vecs, &result.residual[i].conv1);
-  }
+    const int num_residual = (vecs.size() - 4) / 8;
+    result.residual.resize(num_residual);
+    for (int i = num_residual - 1; i >= 0; --i) {
+        PopulateConvBlockWeights(&vecs, &result.residual[i].conv2);
+        PopulateConvBlockWeights(&vecs, &result.residual[i].conv1);
+    }
 
-  PopulateConvBlockWeights(&vecs, &result.input);
-  return result;
+    PopulateConvBlockWeights(&vecs, &result.input);
+    return result;
 }
 
 std::string DiscoveryWeightsFile() {
-  const int kMinFileSize = 500000;  // 500 KB
+    const int kMinFileSize = 500000;  // 500 KB
 
-  std::string root_path = CommandLine::BinaryDirectory();
+    std::string root_path = CommandLine::BinaryDirectory();
 
-  // Open all files in <binary dir> amd <binary dir>/networks,
-  // ones which are >= kMinFileSize are candidates.
-  std::vector<std::pair<time_t, std::string> > time_and_filename;
-  for (const auto& path : {"", "/networks"}) {
-    for (const auto& file : GetFileList(root_path + path)) {
-      const std::string filename = root_path + path + "/" + file;
-      if (GetFileSize(filename) < kMinFileSize) continue;
-      time_and_filename.emplace_back(GetFileTime(filename), filename);
+    // Open all files in <binary dir> amd <binary dir>/networks,
+    // ones which are >= kMinFileSize are candidates.
+    std::vector<std::pair<time_t, std::string> > time_and_filename;
+    for (const auto& path : {"", "/networks"}) {
+        for (const auto& file : GetFileList(root_path + path)) {
+            const std::string filename = root_path + path + "/" + file;
+            if (GetFileSize(filename) < kMinFileSize) continue;
+            time_and_filename.emplace_back(GetFileTime(filename), filename);
+        }
     }
-  }
 
-  std::sort(time_and_filename.rbegin(), time_and_filename.rend());
+    std::sort(time_and_filename.rbegin(), time_and_filename.rend());
 
-  // Open all candidates, from newest to oldest, possibly gzipped, and try to
-  // read version for it. If version is 2, return it.
-  for (const auto& candidate : time_and_filename) {
-    gzFile file = gzopen(candidate.second.c_str(), "rb");
+    // Open all candidates, from newest to oldest, possibly gzipped, and try to
+    // read version for it. If version is 2, return it.
+    for (const auto& candidate : time_and_filename) {
+        gzFile file = gzopen(candidate.second.c_str(), "rb");
 
-    if (!file) continue;
-    char buf[256];
-    int sz = gzread(file, buf, 256);
-    gzclose(file);
-    if (sz < 0) continue;
+        if (!file) continue;
+        char buf[256];
+        int sz = gzread(file, buf, 256);
+        gzclose(file);
+        if (sz < 0) continue;
 
-    std::string str(buf, buf + sz);
-    std::istringstream data(str);
-    int val = 0;
-    data >> val;
-    if (!data.fail() && val == 2) {
-      std::cerr << "Found network file: " << candidate.second << std::endl;
-      return candidate.second;
+        std::string str(buf, buf + sz);
+        std::istringstream data(str);
+        int val = 0;
+        data >> val;
+        if (!data.fail() && val == 2) {
+            std::cerr << "Found network file: " << candidate.second
+                      << std::endl;
+            return candidate.second;
+        }
     }
-  }
 
-  throw Exception("Network weights file not found.");
-  return {};
+    throw Exception("Network weights file not found.");
+    return {};
 }
 
 }  // namespace cczero

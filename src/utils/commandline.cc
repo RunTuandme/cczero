@@ -25,31 +25,31 @@ std::vector<std::string> CommandLine::arguments_;
 std::vector<std::pair<std::string, std::string>> CommandLine::modes_;
 
 void CommandLine::Init(int argc, const char** argv) {
-  binary_ = argv[0];
-  arguments_.clear();
-  for (int i = 1; i < argc; ++i) arguments_.push_back(argv[i]);
+    binary_ = argv[0];
+    arguments_.clear();
+    for (int i = 1; i < argc; ++i) arguments_.push_back(argv[i]);
 }
 
 bool CommandLine::ConsumeCommand(const std::string& command) {
-  if (arguments_.empty()) return false;
-  if (arguments_[0] != command) return false;
-  arguments_.erase(arguments_.begin());
-  return true;
+    if (arguments_.empty()) return false;
+    if (arguments_[0] != command) return false;
+    arguments_.erase(arguments_.begin());
+    return true;
 }
 
 void CommandLine::RegisterMode(const std::string& mode,
                                const std::string& description) {
-  modes_.emplace_back(mode, description);
+    modes_.emplace_back(mode, description);
 }
 
 std::string CommandLine::BinaryDirectory() {
-  std::string path = binary_;
-  auto pos = path.find_last_of("\\/");
-  if (pos == std::string::npos) {
-    return ".";
-  }
-  path.resize(pos);
-  return path;
+    std::string path = binary_;
+    auto pos = path.find_last_of("\\/");
+    if (pos == std::string::npos) {
+        return ".";
+    }
+    path.resize(pos);
+    return path;
 }
 
 }  // namespace cczero

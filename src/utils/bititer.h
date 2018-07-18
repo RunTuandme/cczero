@@ -28,33 +28,33 @@ namespace cczero {
 // dereferenced iterator is bit number (lower to upper, 0 bazed)
 template <typename T>
 class BitIterator {
- public:
-  BitIterator(std::uint64_t value) : value_(value){};
-  bool operator!=(const BitIterator& other) { return value_ != other.value_; }
+   public:
+    BitIterator(std::uint64_t value) : value_(value){};
+    bool operator!=(const BitIterator& other) { return value_ != other.value_; }
 
-  void operator++() { value_ &= (value_ - 1); }
-  T operator*() const {
+    void operator++() { value_ &= (value_ - 1); }
+    T operator*() const {
 #ifdef _MSC_VER
-    unsigned long result;
-    _BitScanForward64(&result, value_);
-    return result;
+        unsigned long result;
+        _BitScanForward64(&result, value_);
+        return result;
 #else
-    return __builtin_ctzll(value_);
+        return __builtin_ctzll(value_);
 #endif
-  }
+    }
 
- private:
-  std::uint64_t value_;
+   private:
+    std::uint64_t value_;
 };
 
 class IterateBits {
- public:
-  IterateBits(std::uint64_t value) : value_(value) {}
-  BitIterator<int> begin() { return value_; }
-  BitIterator<int> end() { return 0; }
+   public:
+    IterateBits(std::uint64_t value) : value_(value) {}
+    BitIterator<int> begin() { return value_; }
+    BitIterator<int> end() { return 0; }
 
- private:
-  std::uint64_t value_;
+   private:
+    std::uint64_t value_;
 };
 
 }  // namespace cczero

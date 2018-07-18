@@ -29,51 +29,53 @@ const int kAuxPlaneBase = kPlanesPerBoard * kMoveHistory;
 
 InputPlanes EncodePositionForNN(const PositionHistory& history,
                                 int history_planes) {
-  InputPlanes result(kAuxPlaneBase + 8);
+    InputPlanes result(kAuxPlaneBase + 8);
 
-  {
-    const ChessBoard& board = history.Last().GetBoard();
-    const bool we_are_black = board.flipped();
-    if (board.castlings().we_can_000()) result[kAuxPlaneBase + 0].SetAll();
-    if (board.castlings().we_can_00()) result[kAuxPlaneBase + 1].SetAll();
-    if (board.castlings().they_can_000()) result[kAuxPlaneBase + 2].SetAll();
-    if (board.castlings().they_can_00()) result[kAuxPlaneBase + 3].SetAll();
-    if (we_are_black) result[kAuxPlaneBase + 4].SetAll();
-    result[kAuxPlaneBase + 5].Fill(history.Last().GetNoCapturePly());
-    // Plane kAuxPlaneBase + 6 used to be movecount plane, now it's all zeros.
-    // Plane kAuxPlaneBase + 7 is all ones to help NN find board edges.
-    result[kAuxPlaneBase + 7].SetAll();
-  }
+    {
+        const ChessBoard& board = history.Last().GetBoard();
+        const bool we_are_black = board.flipped();
+        if (board.castlings().we_can_000()) result[kAuxPlaneBase + 0].SetAll();
+        if (board.castlings().we_can_00()) result[kAuxPlaneBase + 1].SetAll();
+        if (board.castlings().they_can_000())
+            result[kAuxPlaneBase + 2].SetAll();
+        if (board.castlings().they_can_00()) result[kAuxPlaneBase + 3].SetAll();
+        if (we_are_black) result[kAuxPlaneBase + 4].SetAll();
+        result[kAuxPlaneBase + 5].Fill(history.Last().GetNoCapturePly());
+        // Plane kAuxPlaneBase + 6 used to be movecount plane, now it's all
+        // zeros. Plane kAuxPlaneBase + 7 is all ones to help NN find board
+        // edges.
+        result[kAuxPlaneBase + 7].SetAll();
+    }
 
-  bool flip = false;
-  int history_idx = history.GetLength() - 1;
-  for (int i = 0; i < std::min(history_planes, kMoveHistory);
-       ++i, flip = !flip, --history_idx) {
-    if (history_idx < 0) break;
-    const Position& position = history.GetPositionAt(history_idx);
-    const ChessBoard& board =
-        flip ? position.GetThemBoard() : position.GetBoard();
+    bool flip = false;
+    int history_idx = history.GetLength() - 1;
+    for (int i = 0; i < std::min(history_planes, kMoveHistory);
+         ++i, flip = !flip, --history_idx) {
+        if (history_idx < 0) break;
+        const Position& position = history.GetPositionAt(history_idx);
+        const ChessBoard& board =
+            flip ? position.GetThemBoard() : position.GetBoard();
 
-    const int base = i * kPlanesPerBoard;
-    result[base + 0].mask = (board.ours() * board.pawns()).as_int();
-    result[base + 1].mask = (board.our_knights()).as_int();
-    result[base + 2].mask = (board.ours() * board.bishops()).as_int();
-    result[base + 3].mask = (board.ours() * board.rooks()).as_int();
-    result[base + 4].mask = (board.ours() * board.queens()).as_int();
-    result[base + 5].mask = (board.our_king()).as_int();
+        const int base = i * kPlanesPerBoard;
+        result[base + 0].mask = (board.ours() * board.pawns()).as_int();
+        result[base + 1].mask = (board.our_knights()).as_int();
+        result[base + 2].mask = (board.ours() * board.bishops()).as_int();
+        result[base + 3].mask = (board.ours() * board.rooks()).as_int();
+        result[base + 4].mask = (board.ours() * board.queens()).as_int();
+        result[base + 5].mask = (board.our_king()).as_int();
 
-    result[base + 6].mask = (board.theirs() * board.pawns()).as_int();
-    result[base + 7].mask = (board.their_knights()).as_int();
-    result[base + 8].mask = (board.theirs() * board.bishops()).as_int();
-    result[base + 9].mask = (board.theirs() * board.rooks()).as_int();
-    result[base + 10].mask = (board.theirs() * board.queens()).as_int();
-    result[base + 11].mask = (board.their_king()).as_int();
+        result[base + 6].mask = (board.theirs() * board.pawns()).as_int();
+        result[base + 7].mask = (board.their_knights()).as_int();
+        result[base + 8].mask = (board.theirs() * board.bishops()).as_int();
+        result[base + 9].mask = (board.theirs() * board.rooks()).as_int();
+        result[base + 10].mask = (board.theirs() * board.queens()).as_int();
+        result[base + 11].mask = (board.their_king()).as_int();
 
-    const int repetitions = position.GetRepetitions();
-    if (repetitions >= 1) result[base + 12].SetAll();
-  }
+        const int repetitions = position.GetRepetitions();
+        if (repetitions >= 1) result[base + 12].SetAll();
+    }
 
-  return result;
+    return result;
 }
 
 }  // namespace cczero

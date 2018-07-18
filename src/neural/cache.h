@@ -24,11 +24,11 @@
 namespace cczero {
 
 struct CachedNNRequest {
-  CachedNNRequest(size_t size) : p(size) {}
-  typedef std::pair<uint16_t, float> IdxAndProb;
-  float q;
-  // TODO(mooskagh) Don't really need index if using perfect hash.
-  SmallArray<IdxAndProb> p;
+    CachedNNRequest(size_t size) : p(size) {}
+    typedef std::pair<uint16_t, float> IdxAndProb;
+    float q;
+    // TODO(mooskagh) Don't really need index if using perfect hash.
+    SmallArray<IdxAndProb> p;
 };
 
 typedef LruCache<uint64_t, CachedNNRequest> NNCache;
@@ -38,45 +38,45 @@ typedef LruCacheLock<uint64_t, CachedNNRequest> NNCacheLock;
 // While it mostly repeats NetworkComputation interface, it's not derived
 // from it, as AddInput() needs hash and index of probabilities to store.
 class CachingComputation {
- public:
-  CachingComputation(std::unique_ptr<NetworkComputation> parent,
-                     NNCache* cache);
+   public:
+    CachingComputation(std::unique_ptr<NetworkComputation> parent,
+                       NNCache* cache);
 
-  // How many inputs are not found in cache and will be forwarded to a wrapped
-  // computation.
-  int GetCacheMisses() const;
-  // Total number of times AddInput/AddInputByHash were (successfully) called.
-  int GetBatchSize() const;
-  // Adds input by hash only. If that hash is not in cache, returns false
-  // and does nothing. Otherwise adds.
-  bool AddInputByHash(uint64_t hash);
-  // Adds a sample to the batch.
-  // @hash is a hash to store/lookup it in the cache.
-  // @probabilities_to_cache is which indices of policy head to store.
-  void AddInput(uint64_t hash, InputPlanes&& input,
-                std::vector<uint16_t>&& probabilities_to_cache);
-  // Undos last AddInput. If it was a cache miss, the it's actually not removed
-  // from parent's batch.
-  void PopLastInputHit();
-  // Do the computation.
-  void ComputeBlocking();
-  // Returns Q value of @sample.
-  float GetQVal(int sample) const;
-  // Returns P value @move_id of @sample.
-  float GetPVal(int sample, int move_id) const;
+    // How many inputs are not found in cache and will be forwarded to a wrapped
+    // computation.
+    int GetCacheMisses() const;
+    // Total number of times AddInput/AddInputByHash were (successfully) called.
+    int GetBatchSize() const;
+    // Adds input by hash only. If that hash is not in cache, returns false
+    // and does nothing. Otherwise adds.
+    bool AddInputByHash(uint64_t hash);
+    // Adds a sample to the batch.
+    // @hash is a hash to store/lookup it in the cache.
+    // @probabilities_to_cache is which indices of policy head to store.
+    void AddInput(uint64_t hash, InputPlanes&& input,
+                  std::vector<uint16_t>&& probabilities_to_cache);
+    // Undos last AddInput. If it was a cache miss, the it's actually not
+    // removed from parent's batch.
+    void PopLastInputHit();
+    // Do the computation.
+    void ComputeBlocking();
+    // Returns Q value of @sample.
+    float GetQVal(int sample) const;
+    // Returns P value @move_id of @sample.
+    float GetPVal(int sample, int move_id) const;
 
- private:
-  struct WorkItem {
-    uint64_t hash;
-    NNCacheLock lock;
-    int idx_in_parent = -1;
-    std::vector<uint16_t> probabilities_to_cache;
-    mutable int last_idx = 0;
-  };
+   private:
+    struct WorkItem {
+        uint64_t hash;
+        NNCacheLock lock;
+        int idx_in_parent = -1;
+        std::vector<uint16_t> probabilities_to_cache;
+        mutable int last_idx = 0;
+    };
 
-  std::unique_ptr<NetworkComputation> parent_;
-  NNCache* cache_;
-  std::vector<WorkItem> batch_;
+    std::unique_ptr<NetworkComputation> parent_;
+    NNCache* cache_;
+    std::vector<WorkItem> batch_;
 };
 
 }  // namespace cczero

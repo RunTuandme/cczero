@@ -34,14 +34,14 @@
 #define ACQUIRED_AFTER(...) ATTRIBUTE__(acquired_after(__VA_ARGS__))
 #define REQUIRES(...) ATTRIBUTE__(requires_capability(__VA_ARGS__))
 #define REQUIRES_SHARED(...) \
-  ATTRIBUTE__(requires_shared_capability(__VA_ARGS__))
+    ATTRIBUTE__(requires_shared_capability(__VA_ARGS__))
 #define ACQUIRE(...) ATTRIBUTE__(acquire_capability(__VA_ARGS__))
 #define ACQUIRE_SHARED(...) ATTRIBUTE__(acquire_shared_capability(__VA_ARGS__))
 #define RELEASE(...) ATTRIBUTE__(release_capability(__VA_ARGS__))
 #define RELEASE_SHARED(...) ATTRIBUTE__(release_shared_capability(__VA_ARGS__))
 #define TRY_ACQUIRE(...) ATTRIBUTE__(try_acquire_capability(__VA_ARGS__))
 #define TRY_ACQUIRE_SHARED(...) \
-  ATTRIBUTE__(try_acquire_shared_capability(__VA_ARGS__))
+    ATTRIBUTE__(try_acquire_shared_capability(__VA_ARGS__))
 #define EXCLUDES(...) ATTRIBUTE__(locks_excluded(__VA_ARGS__))
 #define ASSERT_CAPABILITY(x) ATTRIBUTE__(assert_capability(x))
 #define ASSERT_SHARED_CAPABILITY(x) ATTRIBUTE__(assert_shared_capability(x))

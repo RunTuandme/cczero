@@ -28,58 +28,58 @@
 namespace cczero {
 
 struct GoParams {
-  std::int64_t wtime = -1;
-  std::int64_t btime = -1;
-  std::int64_t winc = -1;
-  std::int64_t binc = -1;
-  int movestogo = -1;
-  int depth = -1;
-  int nodes = -1;
-  std::int64_t movetime = -1;
-  bool infinite = false;
-  std::vector<std::string> searchmoves;
+    std::int64_t wtime = -1;
+    std::int64_t btime = -1;
+    std::int64_t winc = -1;
+    std::int64_t binc = -1;
+    int movestogo = -1;
+    int depth = -1;
+    int nodes = -1;
+    std::int64_t movetime = -1;
+    bool infinite = false;
+    std::vector<std::string> searchmoves;
 };
 
 class UciLoop {
- public:
-  virtual ~UciLoop() {}
-  virtual void RunLoop();
+   public:
+    virtual ~UciLoop() {}
+    virtual void RunLoop();
 
-  // Sends response to host.
-  void SendResponse(const std::string& response);
-  // Sends responses to host ensuring they are received as a block.
-  virtual void SendResponses(const std::vector<std::string>& responses);
-  void SendBestMove(const BestMoveInfo& move);
-  void SendInfo(const ThinkingInfo& info);
-  void SendId();
+    // Sends response to host.
+    void SendResponse(const std::string& response);
+    // Sends responses to host ensuring they are received as a block.
+    virtual void SendResponses(const std::vector<std::string>& responses);
+    void SendBestMove(const BestMoveInfo& move);
+    void SendInfo(const ThinkingInfo& info);
+    void SendId();
 
-  // Command handlers.
-  virtual void CmdUci() { throw Exception("Not supported"); }
-  virtual void CmdIsReady() { throw Exception("Not supported"); }
-  virtual void CmdSetOption(const std::string& /*name*/,
-                            const std::string& /*value*/,
-                            const std::string& /*context*/) {
-    throw Exception("Not supported");
-  }
-  virtual void CmdUciNewGame() { throw Exception("Not supported"); }
-  virtual void CmdPosition(const std::string& /*position*/,
-                           const std::vector<std::string>& /*moves*/) {
-    throw Exception("Not supported");
-  }
-  virtual void CmdGo(const GoParams& /*params*/) {
-    throw Exception("Not supported");
-  }
-  virtual void CmdStop() { throw Exception("Not supported"); }
-  virtual void CmdStart() { throw Exception("Not supported"); }
+    // Command handlers.
+    virtual void CmdUci() { throw Exception("Not supported"); }
+    virtual void CmdIsReady() { throw Exception("Not supported"); }
+    virtual void CmdSetOption(const std::string& /*name*/,
+                              const std::string& /*value*/,
+                              const std::string& /*context*/) {
+        throw Exception("Not supported");
+    }
+    virtual void CmdUciNewGame() { throw Exception("Not supported"); }
+    virtual void CmdPosition(const std::string& /*position*/,
+                             const std::vector<std::string>& /*moves*/) {
+        throw Exception("Not supported");
+    }
+    virtual void CmdGo(const GoParams& /*params*/) {
+        throw Exception("Not supported");
+    }
+    virtual void CmdStop() { throw Exception("Not supported"); }
+    virtual void CmdStart() { throw Exception("Not supported"); }
 
-  void SetLogFilename(const std::string& filename);
+    void SetLogFilename(const std::string& filename);
 
- private:
-  bool DispatchCommand(
-      const std::string& command,
-      const std::unordered_map<std::string, std::string>& params);
+   private:
+    bool DispatchCommand(
+        const std::string& command,
+        const std::unordered_map<std::string, std::string>& params);
 
-  std::ofstream debug_log_;
+    std::ofstream debug_log_;
 };
 
 }  // namespace cczero

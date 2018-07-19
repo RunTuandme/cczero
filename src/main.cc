@@ -17,6 +17,7 @@
 */
 
 #include <iostream>
+
 #include "engine.h"
 #include "selfplay/loop.h"
 #include "utils/commandline.h"

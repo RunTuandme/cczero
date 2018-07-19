@@ -17,44 +17,40 @@
 */
 
 #pragma once
+#include <immintrin.h>
 #include <cstdint>
-#ifdef _MSC_VER
-#include <intrin.h>
-#endif
 
 namespace cczero {
 
 // Iterates over all set bits of the value, lower to upper. The value of
-// dereferenced iterator is bit number (lower to upper, 0 bazed)
+// dereferenced iterator is bit number (lower to upper, 0 based)
 template <typename T>
 class BitIterator {
    public:
-    BitIterator(std::uint64_t value) : value_(value){};
+    BitIterator(__m128i value) : value_(value){};
     bool operator!=(const BitIterator& other) { return value_ != other.value_; }
 
     void operator++() { value_ &= (value_ - 1); }
     T operator*() const {
-#ifdef _MSC_VER
-        unsigned long result;
-        _BitScanForward64(&result, value_);
-        return result;
-#else
-        return __builtin_ctzll(value_);
-#endif
+        std::uint64_t hi = value_ >> 64;
+        std::uint64_t lo = value_;
+        int retval[3] = {_tzcnt_u64(lo), _tzcnt_u64(hi) + 64, 128};
+        int idx = !lo + ((!lo) & (!hi));
+        return retval[idx];
     }
 
    private:
-    std::uint64_t value_;
+    __m128i value_;
 };
 
 class IterateBits {
    public:
-    IterateBits(std::uint64_t value) : value_(value) {}
+    IterateBits(__m128i value) : value_(value) {}
     BitIterator<int> begin() { return value_; }
     BitIterator<int> end() { return 0; }
 
    private:
-    std::uint64_t value_;
+    __m128i value_;
 };
 
 }  // namespace cczero

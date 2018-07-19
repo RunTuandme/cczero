@@ -16,8 +16,6 @@
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "mcts/node.h"
-
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -25,6 +23,8 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
+
+#include "mcts/node.h"
 #include "neural/encoder.h"
 #include "neural/network.h"
 #include "utils/hashcat.h"

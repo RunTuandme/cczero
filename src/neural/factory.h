@@ -20,6 +20,7 @@
 
 #include <functional>
 #include <string>
+
 #include "neural/network.h"
 #include "utils/optionsdict.h"
 

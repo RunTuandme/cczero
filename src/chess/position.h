@@ -19,6 +19,7 @@
 #pragma once
 
 #include <string>
+
 #include "chess/board.h"
 
 namespace cczero {
@@ -29,8 +30,6 @@ class Position {
     Position(const Position& parent, Move m);
     // From particular position.
     Position(const ChessBoard& board, int no_capture_ply, int game_ply);
-
-    enum Castling { WE_CAN_OOO, WE_CAN_OO, THEY_CAN_OOO, THEY_CAN_OO };
 
     uint64_t Hash() const;
     bool IsBlackToMove() const { return us_board_.flipped(); }
@@ -47,9 +46,6 @@ class Position {
 
     // Number of ply with no captures and pawn moves.
     int GetNoCapturePly() const { return no_capture_ply_; }
-
-    // Returns whether castle is still allowed in given direction.
-    bool CanCastle(Castling) const;
 
     // Gets board from the point of view of player to move.
     const ChessBoard& GetBoard() const { return us_board_; }

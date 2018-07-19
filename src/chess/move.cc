@@ -16,7 +16,7 @@
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "chess/bitboard.h"
+#include "chess/move.h"
 #include "utils/exception.h"
 
 namespace cczero {

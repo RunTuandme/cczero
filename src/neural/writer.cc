@@ -16,10 +16,10 @@
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "neural/writer.h"
-
 #include <iomanip>
 #include <sstream>
+
+#include "neural/writer.h"
 #include "utils/commandline.h"
 #include "utils/exception.h"
 #include "utils/filesystem.h"

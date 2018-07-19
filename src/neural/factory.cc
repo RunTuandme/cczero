@@ -16,10 +16,10 @@
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "neural/factory.h"
-
 #include <algorithm>
 #include <iostream>
+
+#include "neural/factory.h"
 
 namespace cczero {
 

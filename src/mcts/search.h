@@ -21,6 +21,7 @@
 #include <functional>
 #include <shared_mutex>
 #include <thread>
+
 #include "chess/callbacks.h"
 #include "chess/uciloop.h"
 #include "mcts/node.h"

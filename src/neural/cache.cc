@@ -15,9 +15,10 @@
   You should have received a copy of the GNU General Public License
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "neural/cache.h"
 #include <cassert>
 #include <iostream>
+
+#include "neural/cache.h"
 
 namespace cczero {
 CachingComputation::CachingComputation(

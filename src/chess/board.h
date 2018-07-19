@@ -19,7 +19,9 @@
 #pragma once
 
 #include <string>
+
 #include "chess/bitboard.h"
+#include "chess/move.h"
 #include "utils/hashcat.h"
 
 namespace cczero {
@@ -67,78 +69,33 @@ class ChessBoard {
 
     uint64_t Hash() const {
         return HashCat({our_pieces_.as_int(), their_pieces_.as_int(),
-                        rooks_.as_int(), bishops_.as_int(), pawns_.as_int(),
-                        our_king_.as_int(), their_king_.as_int(),
-                        castlings_.as_int(), flipped_});
+                        rooks_.as_int(), knights_.as_int(), bishops_.as_int(),
+                        advisors_.as_int(), cannons_.as_int(), pawns_.as_int(),
+                        our_king_.as_int(), their_king_.as_int(), flipped_});
     }
-
-    class Castlings {
-       public:
-        void set_we_can_00() { data_ |= 1; }
-        void set_we_can_000() { data_ |= 2; }
-        void set_they_can_00() { data_ |= 4; }
-        void set_they_can_000() { data_ |= 8; }
-
-        void reset_we_can_00() { data_ &= ~1; }
-        void reset_we_can_000() { data_ &= ~2; }
-        void reset_they_can_00() { data_ &= ~4; }
-        void reset_they_can_000() { data_ &= ~8; }
-
-        bool we_can_00() const { return data_ & 1; }
-        bool we_can_000() const { return data_ & 2; }
-        bool they_can_00() const { return data_ & 4; }
-        bool they_can_000() const { return data_ & 8; }
-
-        void Mirror() {
-            data_ = ((data_ & 0b11) << 2) + ((data_ & 0b1100) >> 2);
-        }
-
-        std::string as_string() const {
-            if (data_ == 0) return "-";
-            std::string result;
-            if (we_can_00()) result += 'K';
-            if (we_can_000()) result += 'Q';
-            if (they_can_00()) result += 'k';
-            if (they_can_000()) result += 'q';
-            return result;
-        }
-
-        uint8_t as_int() const { return data_; }
-
-        bool operator==(const Castlings& other) const {
-            return data_ == other.data_;
-        }
-
-       private:
-        std::uint8_t data_ = 0;
-    };
 
     std::string DebugString() const;
 
     BitBoard ours() const { return our_pieces_; }
     BitBoard theirs() const { return their_pieces_; }
-    BitBoard pawns() const;
-    BitBoard bishops() const { return bishops_ - rooks_; }
-    BitBoard rooks() const { return rooks_ - bishops_; }
-    BitBoard queens() const { return rooks_ * bishops_; }
-    BitBoard our_knights() const {
-        return our_pieces_ - pawns() - our_king_ - rooks_ - bishops_;
-    }
-    BitBoard their_knights() const {
-        return their_pieces_ - pawns() - their_king_ - rooks_ - bishops_;
-    }
+    BitBoard rooks() const { return rooks_; }
+    BitBoard knights() const { return knights_; }
+    BitBoard bishops() const { return bishops_; }
+    BitBoard advisors() const { return advisors_; }
+    BitBoard cannons() const { return cannons_; }
+    BitBoard pawns() const { return pawns_; }
     BitBoard our_king() const { return 1ull << our_king_.as_int(); }
     BitBoard their_king() const { return 1ull << their_king_.as_int(); }
-    const Castlings& castlings() const { return castlings_; }
     bool flipped() const { return flipped_; }
 
     bool operator==(const ChessBoard& other) const {
         return (our_pieces_ == other.our_pieces_) &&
                (their_pieces_ == other.their_pieces_) &&
                (rooks_ == other.rooks_) && (bishops_ == other.bishops_) &&
-               (pawns_ == other.pawns_) && (our_king_ == other.our_king_) &&
+               (knights_ == other.knights_) && (advisors_ == other.advisors_) &&
+               (cannons_ == other.cannons_) && (our_king_ == other.our_king_) &&
                (their_king_ == other.their_king_) &&
-               (castlings_ == other.castlings_) && (flipped_ == other.flipped_);
+               (flipped_ == other.flipped_);
     }
 
     bool operator!=(const ChessBoard& other) const {
@@ -150,19 +107,20 @@ class ChessBoard {
     BitBoard our_pieces_;
     // All black pieces.
     BitBoard their_pieces_;
-    // Rooks and queens.
+    // Rooks.
     BitBoard rooks_;
-    // Bishops and queens;
+    // Knights.
+    BitBoard knights_;
+    // Bishops;
     BitBoard bishops_;
+    // Advisors.
+    BitBoard advisors_;
+    // Cannons.
+    BitBoard cannons_;
     // Pawns.
-    // Ranks 1 and 8 have special meaning. Pawn at rank 1 means that
-    // corresponding white pawn on rank 4 can be taken en passant. Rank 8 is the
-    // same for black pawns. Those "fake" pawns are not present in white_ and
-    // black_ bitboards.
     BitBoard pawns_;
     BoardSquare our_king_;
     BoardSquare their_king_;
-    Castlings castlings_;
     bool flipped_ = false;  // aka "Black to move".
 };
 

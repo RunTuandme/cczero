@@ -16,8 +16,9 @@
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "neural/encoder.h"
 #include <algorithm>
+
+#include "neural/encoder.h"
 
 namespace cczero {
 

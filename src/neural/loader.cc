@@ -16,8 +16,6 @@
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "neural/loader.h"
-#include <zlib.h>
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
@@ -25,7 +23,8 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "proto/net.pb.h"
+
+#include "neural/loader.h"
 #include "utils/commandline.h"
 #include "utils/exception.h"
 #include "utils/filesystem.h"

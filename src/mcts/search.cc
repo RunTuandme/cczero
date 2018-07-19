@@ -16,8 +16,6 @@
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "mcts/search.h"
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -27,6 +25,7 @@
 #include <thread>
 
 #include "mcts/node.h"
+#include "mcts/search.h"
 #include "neural/cache.h"
 #include "neural/encoder.h"
 #include "utils/random.h"

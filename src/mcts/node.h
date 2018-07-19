@@ -21,6 +21,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+
 #include "chess/board.h"
 #include "chess/callbacks.h"
 #include "chess/position.h"

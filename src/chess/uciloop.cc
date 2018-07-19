@@ -16,8 +16,6 @@
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "uciloop.h"
-
 #include <iomanip>
 #include <iostream>
 #include <mutex>
@@ -26,6 +24,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+
+#include "uciloop.h"
 #include "utils/exception.h"
 #include "utils/string.h"
 #include "version.inc"

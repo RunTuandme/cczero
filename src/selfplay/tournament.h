@@ -19,6 +19,7 @@
 #pragma once
 
 #include <list>
+
 #include "selfplay/game.h"
 #include "utils/mutex.h"
 #include "utils/optionsdict.h"

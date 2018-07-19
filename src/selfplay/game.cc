@@ -16,10 +16,10 @@
   along with Chinese Chess Zero.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "selfplay/game.h"
 #include <algorithm>
 
 #include "neural/writer.h"
+#include "selfplay/game.h"
 
 namespace cczero {
 

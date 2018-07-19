@@ -20,13 +20,14 @@
 #include <list>
 #include <memory>
 #include <mutex>
-#include "neural/factory.h"
-#include "utils/bititer.h"
-#include "utils/exception.h"
+#include <algorithm>
 
 #include <cublas_v2.h>
 #include <cudnn.h>
-#include <algorithm>
+
+#include "neural/factory.h"
+#include "utils/bititer.h"
+#include "utils/exception.h"
 
 //#define DEBUG_RAW_NPS
 

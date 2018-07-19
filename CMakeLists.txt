@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(cczero)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 include_directories(src)
 include_directories(src/chess)
@@ -11,8 +11,9 @@ include_directories(src/selfplay)
 include_directories(src/utils)
 
 add_executable(cczero
-        src/chess/bitboard.cc
         src/chess/bitboard.h
+        src/chess/move.cc
+        src/chess/move.h
         src/chess/board.cc
         src/chess/board.h
         src/chess/callbacks.h

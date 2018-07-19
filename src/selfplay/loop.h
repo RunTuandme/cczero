@@ -19,6 +19,7 @@
 #pragma once
 
 #include <thread>
+
 #include "chess/uciloop.h"
 #include "selfplay/tournament.h"
 #include "utils/optionsparser.h"

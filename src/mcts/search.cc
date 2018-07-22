@@ -660,12 +660,7 @@ void SearchWorker::ExtendNode(Node* node) {
     // Check whether it's a draw/lose by position. Importantly, we must check
     // these before doing the by-rule checks below.
     if (legal_moves.empty()) {
-        // Could be a checkmate or a stalemate
-        if (board.IsUnderCheck()) {
-            node->MakeTerminal(GameResult::WHITE_WON);
-        } else {
-            node->MakeTerminal(GameResult::DRAW);
-        }
+        node->MakeTerminal(GameResult::WHITE_WON);
         return;
     }
 

@@ -53,17 +53,12 @@ class ChessBoard {
     // Applies the move. (Only for "ours" (white)). Returns true if 50 moves
     // counter should be removed.
     bool ApplyMove(Move move);
-    // Checks if the square is under attack from "theirs" (black).
-    bool IsUnderAttack(BoardSquare square) const;
-    // Checks if "our" (white) king is under check.
-    bool IsUnderCheck() const { return IsUnderAttack(our_king_); }
     // Checks whether at least one of the sides has mating material.
-
     bool HasMatingMaterial() const;
     // Generates legal moves.
     MoveList GenerateLegalMoves() const;
     // Check whether pseudolegal move is legal.
-    bool IsLegalMove(Move move, bool was_under_check) const;
+    bool IsLegalMove(Move move) const;
     // Returns a list of legal moves and board positions after the move is made.
     std::vector<MoveExecution> GenerateLegalMovesAndPositions() const;
 

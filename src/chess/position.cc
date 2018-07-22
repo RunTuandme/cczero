@@ -50,13 +50,7 @@ GameResult PositionHistory::ComputeGameResult() const {
     const auto& board = Last().GetBoard();
     auto legal_moves = board.GenerateLegalMoves();
     if (legal_moves.empty()) {
-        if (board.IsUnderCheck()) {
-            // Checkmate.
-            return IsBlackToMove() ? GameResult::WHITE_WON
-                                   : GameResult::BLACK_WON;
-        }
-        // Stalemate.
-        return GameResult::DRAW;
+        return IsBlackToMove() ? GameResult::WHITE_WON : GameResult::BLACK_WON;
     }
 
     if (!board.HasMatingMaterial()) return GameResult::DRAW;

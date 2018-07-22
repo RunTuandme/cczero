@@ -74,7 +74,6 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
                 if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
                 const BoardSquare destination(dst_row, dst_col);
                 if (our_pieces_.get(destination)) continue;
-                if (IsUnderAttack(destination)) continue;
                 result.emplace_back(source, destination);
             }
             continue;
@@ -229,25 +228,6 @@ bool ChessBoard::ApplyMove(Move move) {
     // Now destination square for our piece is known.
     our_pieces_.set(to);
 
-    // Promotion
-    if (move.promotion() != Move::Promotion::None) {
-        switch (move.promotion()) {
-            case Move::Promotion::Rook:
-                rooks_.set(to);
-                break;
-            case Move::Promotion::Bishop:
-                bishops_.set(to);
-                break;
-            case Move::Promotion::Queen:
-                rooks_.set(to);
-                bishops_.set(to);
-                break;
-            default:;
-        }
-        pawns_.reset(from);
-        return true;
-    }
-
     // Reset castling rights.
     if (from.as_int() == 0) {
         castlings_.reset_we_can_000();
@@ -271,77 +251,9 @@ bool ChessBoard::ApplyMove(Move move) {
     return reset_50_moves;
 }
 
-bool ChessBoard::IsUnderAttack(BoardSquare square) const {
-    const int row = square.row();
-    const int col = square.col();
-    // Check king
-    {
-        const int krow = their_king_.row();
-        const int kcol = their_king_.col();
-        if (std::abs(krow - row) <= 1 && std::abs(kcol - col) <= 1) return true;
-    }
-    // Check Rooks (and queen)
-    if (kRookAttacks[square.as_int()].intersects(their_pieces_ * rooks_)) {
-        for (const auto& direction : kRookDirections) {
-            auto dst_row = row;
-            auto dst_col = col;
-            while (true) {
-                dst_row += direction.first;
-                dst_col += direction.second;
-                if (!BoardSquare::IsValid(dst_row, dst_col)) break;
-                const BoardSquare destination(dst_row, dst_col);
-                if (our_pieces_.get(destination)) break;
-                if (their_pieces_.get(destination)) {
-                    if (rooks_.get(destination)) return true;
-                    break;
-                }
-            }
-        }
-    }
-    // Check Bishops
-    if (kBishopAttacks[square.as_int()].intersects(their_pieces_ * bishops_)) {
-        for (const auto& direction : kBishopDirections) {
-            auto dst_row = row;
-            auto dst_col = col;
-            while (true) {
-                dst_row += direction.first;
-                dst_col += direction.second;
-                if (!BoardSquare::IsValid(dst_row, dst_col)) break;
-                const BoardSquare destination(dst_row, dst_col);
-                if (our_pieces_.get(destination)) break;
-                if (their_pieces_.get(destination)) {
-                    if (bishops_.get(destination)) return true;
-                    break;
-                }
-            }
-        }
-    }
-    // Check pawns
-    if (kPawnAttacks[square.as_int()].intersects(their_pieces_ * pawns_)) {
-        return true;
-    }
-    // Check knights
-    {
-        if (kKnightAttacks[square.as_int()].intersects(
-                their_pieces_ - their_king_ - rooks_ - bishops_ -
-                (pawns_ * kPawnMask))) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool ChessBoard::IsLegalMove(Move move, bool was_under_check) const {
+bool ChessBoard::IsLegalMove(Move move) const {
     const auto& from = move.from();
     const auto& to = move.to();
-
-    // If we are already under check, also apply move and check if valid.
-    // TODO(mooskagh) Optimize this case
-    if (was_under_check) {
-        ChessBoard board(*this);
-        board.ApplyMove(move);
-        return !board.IsUnderCheck();
-    }
 
     // En passant. Complex but rare. Just apply
     // and check that we are not under check.
@@ -349,17 +261,13 @@ bool ChessBoard::IsLegalMove(Move move, bool was_under_check) const {
         pawns_.get(7, to.col())) {
         ChessBoard board(*this);
         board.ApplyMove(move);
-        return !board.IsUnderCheck();
+        return true;
     }
 
     // If it's kings move, check that destination
     // is not under attack.
     if (from == our_king_) {
-        // Castlings were checked earlier.
-        if (std::abs(static_cast<int>(from.col()) -
-                     static_cast<int>(to.col())) > 1)
-            return true;
-        return !IsUnderAttack(to);
+        return true;
     }
 
     // Not check that piece was pinned. And it was, check that after the move
@@ -400,13 +308,12 @@ bool ChessBoard::IsLegalMove(Move move, bool was_under_check) const {
 }
 
 MoveList ChessBoard::GenerateLegalMoves() const {
-    const bool was_under_check = IsUnderCheck();
     MoveList move_list = GeneratePseudolegalMoves();
     MoveList result;
     result.reserve(move_list.size());
 
     for (Move m : move_list) {
-        if (IsLegalMove(m, was_under_check)) result.emplace_back(m);
+        if (IsLegalMove(m)) result.emplace_back(m);
     }
 
     return result;

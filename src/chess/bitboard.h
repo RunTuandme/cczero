@@ -32,16 +32,16 @@ namespace cczero {
 class BoardSquare {
    public:
     constexpr BoardSquare() {}
+    // From row(bottom to top), and col(left to right), 0-based.
+    constexpr BoardSquare(int row, int col) : square_(row * 16 + col) {}
     // As a single number, 0 to 63, bottom to top, left to right.
     // 0 is a1, 8 is b1, 63 is h8.
-    constexpr BoardSquare(std::uint8_t num) : square_(num) {}
-    // From row(bottom to top), and col(left to right), 0-based.
-    constexpr BoardSquare(int row, int col) : BoardSquare(row * 8 + col) {}
+    constexpr BoardSquare(std::uint8_t num) : BoardSquare(num / 9, num % 9) {}
     // From Square name, e.g e4. Only lowercase.
     BoardSquare(const std::string& str, bool black = false)
         : BoardSquare(black ? '8' - str[1] : str[1] - '1', str[0] - 'a') {}
     constexpr std::uint8_t as_int() const { return square_; }
-    void set(int row, int col) { square_ = row * 8 + col; }
+    void set(int row, int col) { square_ = row * 16 + col; }
 
     // 0-based, bottom to top.
     int row() const { return square_ / 8; }
@@ -70,7 +70,7 @@ class BoardSquare {
     }
 
    private:
-    std::uint8_t square_ = 0;  // Only lower six bits should be set.
+    std::uint8_t square_ = 0;
 };
 
 // Represents a board as an array of 90 bits.

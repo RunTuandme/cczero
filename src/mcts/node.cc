@@ -141,13 +141,7 @@ void Node::CreateEdges(const MoveList& moves) {
 Node::ConstIterator Node::Edges() const { return {edges_, &child_}; }
 Node::Iterator Node::Edges() { return {edges_, &child_}; }
 
-float Node::GetVisitedPolicy() const {
-    float res = 0.0f;
-    for (const auto* node = child_.get(); node; node = node->sibling_.get()) {
-        if (node->n_ > 0) res += edges_[node->index_].GetP();
-    }
-    return res;
-}
+float Node::GetVisitedPolicy() const { return visited_policy_; }
 
 Edge* Node::GetEdgeToNode(const Node* node) const {
     assert(node->parent_ == this);
@@ -177,12 +171,12 @@ bool Node::TryStartScoreUpdate() {
 
 void Node::CancelScoreUpdate() { --n_in_flight_; }
 
-void Node::FinalizeScoreUpdate(float v, float gamma, float beta) {
+void Node::FinalizeScoreUpdate(float v) {
     // Recompute Q.
-    if (gamma == 1.0f && beta == 1.0f) {
-        q_ += (v - q_) / (n_ + 1);
-    } else {
-        q_ += (v - q_) / (std::pow(static_cast<float>(n_), gamma) * beta + 1);
+    q_ += (v - q_) / (n_ + 1);
+    // If first visit, update parent's sum of policies visited at least once.
+    if (n_ == 0 && parent_ != nullptr) {
+        parent_->visited_policy_ += parent_->edges_[index_].GetP();
     }
     // Increment N.
     ++n_;

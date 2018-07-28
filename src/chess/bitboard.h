@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <immintrin.h>
 #include <cassert>
 #include <cstdint>
 #include <string>
@@ -78,11 +77,11 @@ class BoardSquare {
 // Square a1 is bit 0, square a8 is bit 7, square b1 is bit 8.
 class BitBoard {
    public:
-    constexpr BitBoard(__m128i board) : board_(board) {}
+    constexpr BitBoard(__uint128_t board) : board_(board) {}
     BitBoard() = default;
     BitBoard(const BitBoard&) = default;
 
-    __m128i as_int() const { return board_; }
+    __uint128_t as_int() const { return board_; }
     void clear() { board_ = 0; }
 
     // Sets the value for given square to 1 if cond is true.
@@ -91,7 +90,7 @@ class BitBoard {
         set_if(square.as_int(), cond);
     }
     void set_if(std::uint8_t pos, bool cond) {
-        board_ |= (__m128i(cond) << pos);
+        board_ |= (__uint128_t(cond) << pos);
     }
     void set_if(int row, int col, bool cond) {
         set_if(BoardSquare(row, col), cond);
@@ -99,17 +98,17 @@ class BitBoard {
 
     // Sets value of given square to 1.
     void set(BoardSquare square) { set(square.as_int()); }
-    void set(std::uint8_t pos) { board_ |= (__m128i(1) << pos); }
+    void set(std::uint8_t pos) { board_ |= (__uint128_t(1) << pos); }
     void set(int row, int col) { set(BoardSquare(row, col)); }
 
     // Sets value of given square to 0.
     void reset(BoardSquare square) { reset(square.as_int()); }
-    void reset(std::uint8_t pos) { board_ &= ~(__m128i(1) << pos); }
+    void reset(std::uint8_t pos) { board_ &= ~(__uint128_t(1) << pos); }
     void reset(int row, int col) { reset(BoardSquare(row, col)); }
 
     // Gets value of a square.
     bool get(BoardSquare square) const { return get(square.as_int()); }
-    bool get(std::uint8_t pos) const { return board_ & (__m128i(1) << pos); }
+    bool get(std::uint8_t pos) const { return board_ & (__uint128_t(1) << pos); }
     bool get(int row, int col) const { return get(BoardSquare(row, col)); }
 
     // Returns whether all bits of a board are set to 0.
@@ -122,12 +121,7 @@ class BitBoard {
 
     // Flips black and white side of a board.
     void Mirror() {
-        board_ = (board_ & 0x00000000FFFFFFFF) << 32 |
-                 (board_ & 0xFFFFFFFF00000000) >> 32;
-        board_ = (board_ & 0x0000FFFF0000FFFF) << 16 |
-                 (board_ & 0xFFFF0000FFFF0000) >> 16;
-        board_ = (board_ & 0x00FF00FF00FF00FF) << 8 |
-                 (board_ & 0xFF00FF00FF00FF00) >> 8;
+
     }
 
     bool operator==(const BitBoard& other) const {
@@ -169,7 +163,7 @@ class BitBoard {
 
     // Returns bitboard with one bit reset.
     friend BitBoard operator-(const BitBoard& a, const BoardSquare& b) {
-        return {a.board_ & ~(__m128i(1) << b.as_int())};
+        return {a.board_ & ~(__uint128_t(1) << b.as_int())};
     }
 
     // Returns difference (bitwise AND-NOT) of two boards.
@@ -183,7 +177,7 @@ class BitBoard {
     }
 
    private:
-    __m128i board_ = 0;
+    __uint128_t board_ = 0;
 };
 
 }  // namespace cczero

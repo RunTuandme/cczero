@@ -27,7 +27,7 @@ namespace cczero {
 template <typename T>
 class BitIterator {
    public:
-    BitIterator(__m128i value) : value_(value){};
+    BitIterator(__uint128_t value) : value_(value){};
     bool operator!=(const BitIterator& other) { return value_ != other.value_; }
 
     void operator++() { value_ &= (value_ - 1); }
@@ -40,17 +40,17 @@ class BitIterator {
     }
 
    private:
-    __m128i value_;
+    __uint128_t value_;
 };
 
 class IterateBits {
    public:
-    IterateBits(__m128i value) : value_(value) {}
+    IterateBits(__uint128_t value) : value_(value) {}
     BitIterator<int> begin() { return value_; }
     BitIterator<int> end() { return 0; }
 
    private:
-    __m128i value_;
+    __uint128_t value_;
 };
 
 }  // namespace cczero

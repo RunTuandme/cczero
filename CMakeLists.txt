@@ -64,8 +64,6 @@ add_executable(cczero
         src/utils/smallarray.h
         src/utils/string.cc
         src/utils/string.h
-        src/utils/transpose.cc
-        src/utils/transpose.h
         src/engine.cc
         src/engine.h
         src/main.cc

@@ -36,46 +36,39 @@ class Move {
     Move(const std::string& str, bool black = false);
     Move(const char* str, bool black = false) : Move(std::string(str), black) {}
 
-    BoardSquare to() const { return BoardSquare(data_ & kToMask); }
-    BoardSquare from() const { return BoardSquare((data_ & kFromMask) >> 6); }
+    BoardSquare to() const { return BoardSquare((uint8_t)data_); }
+    BoardSquare from() const { return BoardSquare((uint8_t)(data_ >> 8)); }
 
-    void SetTo(BoardSquare to) { data_ = (data_ & ~kToMask) | to.as_int(); }
+    void SetTo(BoardSquare to) { data_ = (data_ & 0xFF00) | to.as_int(); }
     void SetFrom(BoardSquare from) {
-        data_ = (data_ & ~kFromMask) | (from.as_int() << 8);
+        data_ = (data_ & 0xFF) | (from.as_int() << 8);
     }
     // 0 .. 16384, knight promotion and no promotion is the same.
     uint16_t as_packed_int() const;
 
-    // 0 .. 1857, to use in neural networks.
+    // 0 .. 2086, to use in neural networks.
     uint16_t as_nn_index() const;
 
-    // We ignore the castling bit, because UCI's `position moves ...` commands
-    // specify squares and promotions, but NOT whether or not a move is
-    // castling. NodeTree::MakeMove and all Move::Move constructors are thus so
-    // ignorant.
     bool operator==(const Move& other) const { return data_ == other.data_; }
 
     bool operator!=(const Move& other) const { return !operator==(other); }
     operator bool() const { return data_ != 0; }
 
-    void Mirror() { data_ ^= 0b111000111000; }
+    void Mirror() {
+        data_ = (data_ & 0xFF00) | (89 - (uint8_t)data_);
+        data_ = (data_ & 0xFF) | ((89 - (uint8_t)(data_ >> 8)) << 8);
+    }
 
     std::string as_string() const {
         std::string res = from().as_string() + to().as_string();
-        assert(false);
-        return "Error!";
+        return res;
     }
 
    private:
-    uint16_t data_ = 0;
     // Move, using the following encoding:
     // bits 0..7 "to"-square
     // bits 8..16 "from"-square
-
-    enum Masks : uint16_t {
-        kToMask = 0b0000000011111111,
-        kFromMask = 0b1111111100000000,
-    };
+    uint16_t data_ = 0;
 };
 
 using MoveList = std::vector<Move>;

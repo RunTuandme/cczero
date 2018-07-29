@@ -64,20 +64,18 @@ static const std::pair<int, int> kKnightDirections[] = {
 
 MoveList ChessBoard::GeneratePseudolegalMoves() const {
     MoveList result;
-    if (our_king_ == 0) return result;
-    for (auto source : our_pieces_) {
-        // King
-        if (source == our_king_) {
-            for (const auto& delta : kKingMoves) {
-                const auto dst_row = source.row() + delta.first;
-                const auto dst_col = source.col() + delta.second;
-                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
-                const BoardSquare destination(dst_row, dst_col);
-                if (our_pieces_.get(destination)) continue;
-                result.emplace_back(source, destination);
-            }
-            continue;
-        }
+    // King
+    for (const auto& delta : kKingMoves) {
+        const auto dst_row = our_king_.row() + delta.first;
+        const auto dst_col = our_king_.col() + delta.second;
+        if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+        const BoardSquare destination(dst_row, dst_col);
+        if (our_pieces_.get(destination)) continue;
+        if (IsUnderAttack(destination)) continue;
+        result.emplace_back(our_king_, destination);
+    }
+
+    for (auto source : our_pieces_ - our_king_) {
         bool processed_piece = false;
         // Rook
         if (rooks_.get(source)) {
@@ -115,7 +113,7 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
         }
         if (processed_piece) continue;
         // Pawns.
-        if ((pawns_ * kPawnMask).get(source)) {
+        if (pawns_.get(source)) {
             // Moves forward.
             {
                 const auto dst_row = source.row() + 1;
@@ -152,10 +150,6 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
                     if (their_pieces_.get(destination)) {
                         if (dst_row == 7) {
                             // Promotion.
-                            for (auto promotion : kPromotions) {
-                                result.emplace_back(source, destination,
-                                                    promotion);
-                            }
                         } else {
                             // Ordinary capture.
                             result.emplace_back(source, destination);
@@ -205,8 +199,6 @@ bool ChessBoard::ApplyMove(Move move) {
 
     // King
     if (from == our_king_) {
-        castlings_.reset_we_can_00();
-        castlings_.reset_we_can_000();
         our_king_ = to;
         // Castling
         if (to_col - from_col > 1) {
@@ -228,13 +220,6 @@ bool ChessBoard::ApplyMove(Move move) {
     // Now destination square for our piece is known.
     our_pieces_.set(to);
 
-    // Reset castling rights.
-    if (from.as_int() == 0) {
-        castlings_.reset_we_can_000();
-    }
-    if (from.as_int() == 7) {
-        castlings_.reset_we_can_00();
-    }
 
     // Ordinary move.
     rooks_.set_if(to, rooks_.get(from));
@@ -251,18 +236,73 @@ bool ChessBoard::ApplyMove(Move move) {
     return reset_50_moves;
 }
 
+bool ChessBoard::IsUnderAttack(BoardSquare square) const {
+    const int row = square.row();
+    const int col = square.col();
+    // Check king
+    {
+        const int krow = their_king_.row();
+        const int kcol = their_king_.col();
+        if (std::abs(krow - row) <= 1 && std::abs(kcol - col) <= 1) return true;
+    }
+    // Check Rooks (and queen)
+    if (kRookAttacks[square.as_int()].intersects(their_pieces_ * rooks_)) {
+        for (const auto& direction : kRookDirections) {
+            auto dst_row = row;
+            auto dst_col = col;
+            while (true) {
+                dst_row += direction.first;
+                dst_col += direction.second;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) break;
+                const BoardSquare destination(dst_row, dst_col);
+                if (our_pieces_.get(destination)) break;
+                if (their_pieces_.get(destination)) {
+                    if (rooks_.get(destination)) return true;
+                    break;
+                }
+            }
+        }
+    }
+    // Check Bishops
+    if (kBishopAttacks[square.as_int()].intersects(their_pieces_ * bishops_)) {
+        for (const auto& direction : kBishopDirections) {
+            auto dst_row = row;
+            auto dst_col = col;
+            while (true) {
+                dst_row += direction.first;
+                dst_col += direction.second;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) break;
+                const BoardSquare destination(dst_row, dst_col);
+                if (our_pieces_.get(destination)) break;
+                if (their_pieces_.get(destination)) {
+                    if (bishops_.get(destination)) return true;
+                    break;
+                }
+            }
+        }
+    }
+    // Check pawns
+    if (kPawnAttacks[square.as_int()].intersects(their_pieces_ * pawns_)) {
+        return true;
+    }
+    // Check knights
+    {
+        if (kKnightAttacks[square.as_int()].intersects(
+                their_pieces_ - their_king_ - rooks_ - bishops_ -
+                (pawns_ * kPawnMask))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool ChessBoard::IsLegalMove(Move move) const {
     const auto& from = move.from();
     const auto& to = move.to();
 
-    // En passant. Complex but rare. Just apply
-    // and check that we are not under check.
-    if (from.row() == 4 && pawns_.get(from) && from.col() != to.col() &&
-        pawns_.get(7, to.col())) {
-        ChessBoard board(*this);
-        board.ApplyMove(move);
-        return true;
-    }
+    ChessBoard board(*this);
+    board.ApplyMove(move);
+    if (board.IsUnderAttack(board.our_king_)) return false;
 
     // If it's kings move, check that destination
     // is not under attack.
@@ -316,24 +356,6 @@ MoveList ChessBoard::GenerateLegalMoves() const {
         if (IsLegalMove(m)) result.emplace_back(m);
     }
 
-    return result;
-}
-
-std::vector<MoveExecution> ChessBoard::GenerateLegalMovesAndPositions() const {
-    MoveList move_list = GeneratePseudolegalMoves();
-    std::vector<MoveExecution> result;
-
-    for (const auto& move : move_list) {
-        result.emplace_back();
-        auto& newboard = result.back().board;
-        newboard = *this;
-        result.back().reset_50_moves = newboard.ApplyMove(move);
-        if (newboard.IsUnderCheck()) {
-            result.pop_back();
-            continue;
-        }
-        result.back().move = move;
-    }
     return result;
 }
 
@@ -393,35 +415,6 @@ void ChessBoard::SetFromFen(const std::string& fen, int* no_capture_ply,
             throw Exception("Bad fen string: " + fen);
         }
         ++col;
-    }
-
-    if (castlings != "-") {
-        for (char c : castlings) {
-            switch (c) {
-                case 'K':
-                    castlings_.set_we_can_00();
-                    break;
-                case 'k':
-                    castlings_.set_they_can_00();
-                    break;
-                case 'Q':
-                    castlings_.set_we_can_000();
-                    break;
-                case 'q':
-                    castlings_.set_they_can_000();
-                    break;
-                default:
-                    throw Exception("Bad fen string: " + fen);
-            }
-        }
-    }
-
-    if (en_passant != "-") {
-        auto square = BoardSquare(en_passant);
-        if (square.row() != 2 && square.row() != 5)
-            throw Exception("Bad fen string: " + fen +
-                            " wrong en passant rank");
-        pawns_.set((square.row() == 2) ? 0 : 7, square.col());
     }
 
     if (who_to_move == "b" || who_to_move == "B") {

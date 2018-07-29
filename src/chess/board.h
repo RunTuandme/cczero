@@ -53,14 +53,14 @@ class ChessBoard {
     // Applies the move. (Only for "ours" (white)). Returns true if 50 moves
     // counter should be removed.
     bool ApplyMove(Move move);
+    // Checks if the square is under attack from "theirs" (black).
+    bool IsUnderAttack(BoardSquare square) const;
     // Checks whether at least one of the sides has mating material.
     bool HasMatingMaterial() const;
     // Generates legal moves.
     MoveList GenerateLegalMoves() const;
     // Check whether pseudolegal move is legal.
     bool IsLegalMove(Move move) const;
-    // Returns a list of legal moves and board positions after the move is made.
-    std::vector<MoveExecution> GenerateLegalMovesAndPositions() const;
 
     uint64_t Hash() const {
         return HashCat({our_pieces_.as_int(), their_pieces_.as_int(),
@@ -79,8 +79,10 @@ class ChessBoard {
     BitBoard advisors() const { return advisors_; }
     BitBoard cannons() const { return cannons_; }
     BitBoard pawns() const { return pawns_; }
-    BitBoard our_king() const { return 1ull << our_king_.as_int(); }
-    BitBoard their_king() const { return 1ull << their_king_.as_int(); }
+    BitBoard our_king() const { return (__uint128_t)1 << our_king_.as_int(); }
+    BitBoard their_king() const {
+        return (__uint128_t)1 << their_king_.as_int();
+    }
     bool flipped() const { return flipped_; }
 
     bool operator==(const ChessBoard& other) const {
@@ -117,13 +119,6 @@ class ChessBoard {
     BoardSquare our_king_;
     BoardSquare their_king_;
     bool flipped_ = false;  // aka "Black to move".
-};
-
-// Stores the move and state of the board after the move is done.
-struct MoveExecution {
-    Move move;
-    ChessBoard board;
-    bool reset_50_moves;
 };
 
 }  // namespace cczero

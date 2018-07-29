@@ -31,28 +31,28 @@ namespace cczero {
 class BoardSquare {
    public:
     constexpr BoardSquare() {}
-    // From row(bottom to top), and col(left to right), 0-based.
-    constexpr BoardSquare(int row, int col) : square_(row * 16 + col) {}
-    // As a single number, 0 to 63, bottom to top, left to right.
+    // As a single number, 0 to 90, bottom to top, left to right.
     // 0 is a1, 8 is b1, 63 is h8.
-    constexpr BoardSquare(std::uint8_t num) : BoardSquare(num / 9, num % 9) {}
+    constexpr BoardSquare(std::uint8_t num) : square_(num) {}
+    // From row(bottom to top), and col(left to right), 0-based.
+    constexpr BoardSquare(int row, int col) : BoardSquare(row * 9 + col) {}
     // From Square name, e.g e4. Only lowercase.
     BoardSquare(const std::string& str, bool black = false)
-        : BoardSquare(black ? '8' - str[1] : str[1] - '1', str[0] - 'a') {}
+        : BoardSquare(black ? '9' - str[1] : str[1] - '0',
+                      black ? 'h' - str[0] : str[0] - 'a') {}
     constexpr std::uint8_t as_int() const { return square_; }
-    void set(int row, int col) { square_ = row * 16 + col; }
+    void set(int row, int col) { square_ = row * 9 + col; }
 
     // 0-based, bottom to top.
-    int row() const { return square_ / 8; }
+    int row() const { return square_ / 9; }
     // 0-based, left to right.
-    int col() const { return square_ % 8; }
+    int col() const { return square_ % 9; }
 
-    // Row := 7 - row.  Col remains the same.
-    void Mirror() { square_ = square_ ^ 0b111000; }
+    void Mirror() { square_ = 89 - square_; }
 
-    // Checks whether coordinates are within 0..7.
+    // Checks whether coordinates are within board.
     static bool IsValid(int row, int col) {
-        return row >= 0 && col >= 0 && row < 8 && col < 8;
+        return row >= 0 && col >= 0 && row < 10 && col < 9;
     }
 
     constexpr bool operator==(const BoardSquare& other) const {
@@ -65,7 +65,7 @@ class BoardSquare {
 
     // Returns the square in algebraic notation (e.g. "e4").
     std::string as_string() const {
-        return std::string(1, 'a' + col()) + std::string(1, '1' + row());
+        return std::string(1, 'a' + col()) + std::string(1, '0' + row());
     }
 
    private:
@@ -120,8 +120,15 @@ class BitBoard {
     }
 
     // Flips black and white side of a board.
-    void Mirror() {
 
+    void Mirror() {
+        uint8_t s = 128;  // bit size; must be power of 2
+        __uint128_t mask = ~(__uint128_t)0;
+        while ((s >>= 1) > 0) {
+            mask ^= (mask << s);
+            board_ = ((board_ >> s) & mask) | ((board_ << s) & ~mask);
+        }
+        board_ >>= 38;
     }
 
     bool operator==(const BitBoard& other) const {
@@ -133,8 +140,8 @@ class BitBoard {
 
     std::string DebugString() const {
         std::string res;
-        for (int i = 7; i >= 0; --i) {
-            for (int j = 0; j < 8; ++j) {
+        for (int i = 9; i >= 0; --i) {
+            for (int j = 0; j < 9; ++j) {
                 if (get(i, j))
                     res += '#';
                 else

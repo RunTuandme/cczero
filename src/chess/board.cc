@@ -122,16 +122,17 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
             for (const auto& delta : kBishopMoves) {
                 const auto dst_row = source.row() + delta.first;
                 const auto dst_col = source.col() + delta.second; 
-                const BoardSquare block((source.row()+dst_row)/2, (source.col()+dst_col)/2);
-                if (our_pieces_.get(block) || their_king_.get(block)) continue;
+                const BoardSquare block(delta.first/2, delta.second/2);
+                if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
                 if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+                if (dst_row > 4) continue;
                 const BoardSquare destination(dst_row, dst_col);
                 if (our_pieces_.get(destination)) continue;
                 result.emplace_back(source, destination);
                 }
         }
         if (processed_piece) continue;
-        // Pawns.
+        // Pawns
         if (pawns_.get(source)) {
             for (const auto& delta : kPawnMoves) {
                 const auto dst_row = source.row() + delta.first;
@@ -144,11 +145,39 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
                 }
             }
         }
-        // Knight.
-        {
-            for (const auto destination : kKnightAttacks[source.as_int()]) {
+        // Knight
+        if (knights_.get(source)){
+            for (const auto& delta : kKnightMoves) {
+                const auto dst_row = source.row() + delta.first;
+                const auto dst_col = source.col() + delta.second;
+                const BoardSquare block(delta.first/2, delta.second/2);
+                if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+                const BoardSquare destination(dst_row, dst_col);
                 if (our_pieces_.get(destination)) continue;
                 result.emplace_back(source, destination);
+                }
+            }
+        }
+        // Cannon
+        if (Cannons_.get(source)){
+            for (const auto& direction : kRookDirections) {
+                auto dst_row = source.row();
+                auto dst_col = source.col();
+                int count_block = 0;
+                while (true) {
+                    dst_row += direction.first;
+                    dst_col += direction.second;
+                    if (!BoardSquare::IsValid(dst_row, dst_col)) break;
+                    const BoardSquare destination(dst_row, dst_col);
+                    if (our_pieces_.get(destination) || their_pieces_.get(destination)) count_block++;
+                    if (count_block == 1) continue;
+                    if (count_block == 2) {
+                        if(!their_pieces_.get(destination)) break;
+                    }
+                    result.emplace_back(source, destination);
+                    if (count_block == 2) break;
+                }
             }
         }
     }

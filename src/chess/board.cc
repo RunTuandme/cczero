@@ -262,57 +262,49 @@ bool ChessBoard::IsUnderAttack(BoardSquare square) const {
     const int col = square.col();
     // Check king
     {
-        const int krow = their_king_.row();
-        const int kcol = their_king_.col();
-        if (std::abs(krow - row) <= 1 && std::abs(kcol - col) <= 1) return true;
-    }
-    // Check Rooks (and queen)
-    if (kRookAttacks[square.as_int()].intersects(their_pieces_ * rooks_)) {
-        for (const auto& direction : kRookDirections) {
-            auto dst_row = row;
-            auto dst_col = col;
-            while (true) {
-                dst_row += direction.first;
-                dst_col += direction.second;
-                if (!BoardSquare::IsValid(dst_row, dst_col)) break;
-                const BoardSquare destination(dst_row, dst_col);
-                if (our_pieces_.get(destination)) break;
-                if (their_pieces_.get(destination)) {
-                    if (rooks_.get(destination)) return true;
-                    break;
+        if (col == kcol) {
+            bool face = true;
+            const int krow = their_king_.row();
+            const int kcol = their_king_.col();
+            for (int count_row = 0; count_row <= 9 ; count_row++) {
+                const BoardSquare block(count_row, col);
+                if (count_row > row && count_row < krow) {
+                    if(our_pieces_.get(block) || their_pieces_.get(block)) {face = false;}
                 }
             }
+            if (face = true) return true;
         }
     }
-    // Check Bishops
-    if (kBishopAttacks[square.as_int()].intersects(their_pieces_ * bishops_)) {
-        for (const auto& direction : kBishopDirections) {
-            auto dst_row = row;
-            auto dst_col = col;
-            while (true) {
-                dst_row += direction.first;
-                dst_col += direction.second;
-                if (!BoardSquare::IsValid(dst_row, dst_col)) break;
-                const BoardSquare destination(dst_row, dst_col);
-                if (our_pieces_.get(destination)) break;
-                if (their_pieces_.get(destination)) {
-                    if (bishops_.get(destination)) return true;
-                    break;
-                }
+    // Check Rooks
+    for (const auto& direction : kRookDirections) {
+        auto dst_row = row;
+        auto dst_col = col;
+        while (true) {
+            dst_row += direction.first;
+            dst_col += direction.second;
+            if (!BoardSquare::IsValid(dst_row, dst_col)) break;
+            const BoardSquare destination(dst_row, dst_col);
+            if (our_pieces_.get(destination)) break;
+            if (their_pieces_.get(destination)) {
+                if (rooks_.get(destination)) return true;
+                break;
             }
         }
     }
     // Check pawns
-    if (kPawnAttacks[square.as_int()].intersects(their_pieces_ * pawns_)) {
-        return true;
+    for (const auto& delta : kPawnMoves){
+        auto dst_row = row + delta.first;
+        auto dst_col = col + delta.second; 
+        const BoardSquare destination(dst_row, dst_col);
+        if (pawns_.get(destination)) return true;
     }
     // Check knights
-    {
-        if (kKnightAttacks[square.as_int()].intersects(
-                their_pieces_ - their_king_ - rooks_ - bishops_ -
-                (pawns_ * kPawnMask))) {
-            return true;
-        }
+    for (const auto& delta : kKnightMoves){
+        auto dst_row = row + delta.first;
+        auto dst_col = col + delta.second;
+        if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+        const BoardSquare destination(dst_row, dst_col);
+        if (knights_.get(destination)) return true;
     }
     return false;
 }

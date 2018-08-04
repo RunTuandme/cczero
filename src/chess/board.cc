@@ -90,8 +90,8 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
             }
             if (face = true) continue;
         } // Judge face
+        if (dst_row > 2 || dst_col < 3 || dst_col > 5) continue;
         const BoardSquare destination(dst_row, dst_col);
-        if (destination.first > 2 || destination.second < 3 || destination.second > 5) continue;
         if (our_pieces_.get(destination)) continue;
         if (IsUnderAttack(destination)) continue;
         result.emplace_back(our_king_, destination);
@@ -178,6 +178,18 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
                     result.emplace_back(source, destination);
                     if (count_block == 2) break;
                 }
+            }
+        }
+        // Mandarin
+        if (Mandarins_get(source)){
+            for (const auto& delta : kMandarinMoves) {
+                const auto dst_row = source.row() + delta.first;
+                const auto dst_col = source.col() + delta.second; 
+                if (dst_row > 2 || dst_col < 3 || dst_col > 5) continue;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+                const BoardSquare destination(dst_row, dst_col);
+                if (our_pieces_.get(destination)) continue;
+                result.emplace_back(source, destination);
             }
         }
     }

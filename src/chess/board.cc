@@ -53,14 +53,17 @@ void ChessBoard::Mirror() {
 }
 
 namespace {
+static const BitBoard kPawnMoves[] = {
+  {1, 0}, {0,  1}, {0, -1}}
+  
 static const BitBoard kKingMoves[] = {
-    {1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+	{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
 static const BitBoard kBishopMoves[] = {
-    {2, 2}, {2, -2}, {-2, 2}, {-2, -2}};
+	{2, 2}, {2, -2}, {-2, 2}, {-2, -2}};
 
 static const std::pair<int, int> kKnightMoves[] = {
-    {1, 2}, {-1, 2}, {1, -2}, {-1, -2}, {2, 1}, {2, -1}, {-2, 1}, {-2, -1}};
+	{1, 2}, {-1, 2}, {1, -2}, {-1, -2}, {2, 1}, {2, -1}, {-2, 1}, {-2, -1}};
   
 static const std::pair<int, int> kMandarinMoves[] = {
 	{1, 1}, {-1, 1}, {1, -1}, {-1, -1}}; 
@@ -77,17 +80,18 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
         const auto dst_row = our_king_.row() + delta.first;
         const auto dst_col = our_king_.col() + delta.second;
         if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
-        if (our_king_.col() == their_king_.col()) {
+        if (dst_col == their_king_.col()) {
             bool face = true;
-            for (int count_row=0; count_row<9 ; count_row++){
-                const BoardSquare block(count_row, our_king_.col());
-                if (count_row>our_king_.row() && count_row<their_king_.row()){
+            for (int count_row = 0; count_row <= 9 ; count_row++) {
+                const BoardSquare block(count_row, dst_col);
+                if (count_row > dst_row && count_row < their_king_.row()) {
                     if(our_pieces_.get(block) || their_king_.get(block)) {face = false;}
                 }
             }
             if (face = true) continue;
         } // Judge face
         const BoardSquare destination(dst_row, dst_col);
+        if (destination.first > 2 || destination.second < 3 || destination.second > 5) continue;
         if (our_pieces_.get(destination)) continue;
         if (IsUnderAttack(destination)) continue;
         result.emplace_back(our_king_, destination);
@@ -115,72 +119,30 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
         // Bishop
         if (bishops_.get(source)) {
             processed_piece = true;
-            for (const auto& direction : kBishopDirections) {
-                auto dst_row = source.row();
-                auto dst_col = source.col();
-                while (true) {
-                    dst_row += direction.first;
-                    dst_col += direction.second;
-                    if (!BoardSquare::IsValid(dst_row, dst_col)) break;
-                    const BoardSquare destination(dst_row, dst_col);
-                    if (our_pieces_.get(destination)) break;
-                    result.emplace_back(source, destination);
-                    if (their_pieces_.get(destination)) break;
+            for (const auto& delta : kBishopMoves) {
+                const auto dst_row = source.row() + delta.first;
+                const auto dst_col = source.col() + delta.second; 
+                const BoardSquare block((source.row()+dst_row)/2, (source.col()+dst_col)/2);
+                if (our_pieces_.get(block) || their_king_.get(block)) continue;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+                const BoardSquare destination(dst_row, dst_col);
+                if (our_pieces_.get(destination)) continue;
+                result.emplace_back(source, destination);
                 }
-            }
         }
         if (processed_piece) continue;
         // Pawns.
         if (pawns_.get(source)) {
-            // Moves forward.
-            {
-                const auto dst_row = source.row() + 1;
-                const auto dst_col = source.col();
+            for (const auto& delta : kPawnMoves) {
+                const auto dst_row = source.row() + delta.first;
+                const auto dst_col = source.col() + delta.second; 
+                if (source.row() < 5 && delta.second != 0) continue;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
                 const BoardSquare destination(dst_row, dst_col);
-
-                if (!our_pieces_.get(destination) &&
-                    !their_pieces_.get(destination)) {
-                    if (dst_row != 7) {
-                        result.emplace_back(source, destination);
-                        if (dst_row == 2) {
-                            // Maybe it'll be possible to move two squares.
-                            if (!our_pieces_.get(3, dst_col) &&
-                                !their_pieces_.get(3, dst_col)) {
-                                result.emplace_back(source,
-                                                    BoardSquare(3, dst_col));
-                            }
-                        }
-                    } else {
-                        // Promotions
-                        for (auto promotion : kPromotions) {
-                            result.emplace_back(source, destination, promotion);
-                        }
-                    }
+                if (our_pieces_.get(destination)) continue;
+                result.emplace_back(source, destination);
                 }
             }
-            // Captures.
-            {
-                for (auto direction : {-1, 1}) {
-                    const auto dst_row = source.row() + 1;
-                    const auto dst_col = source.col() + direction;
-                    if (dst_col < 0 || dst_col >= 8) continue;
-                    const BoardSquare destination(dst_row, dst_col);
-                    if (their_pieces_.get(destination)) {
-                        if (dst_row == 7) {
-                            // Promotion.
-                        } else {
-                            // Ordinary capture.
-                            result.emplace_back(source, destination);
-                        }
-                    } else if (dst_row == 5 && pawns_.get(7, dst_col)) {
-                        // En passant.
-                        // "Pawn" on opponent's file 8 means that en passant is
-                        // possible. Those fake pawns are reset in ApplyMove.
-                        result.emplace_back(source, destination);
-                    }
-                }
-            }
-            continue;
         }
         // Knight.
         {

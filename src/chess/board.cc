@@ -53,13 +53,21 @@ void ChessBoard::Mirror() {
 }
 
 namespace {
-static const BitBoard kKingMoves[] = {};
+static const BitBoard kKingMoves[] = {
+    {1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-static const BitBoard kBishopMoves[] = {};
+static const BitBoard kBishopMoves[] = {
+    {2, 2}, {2, -2}, {-2, 2}, {-2, -2}};
 
-static const std::pair<int, int> kKnightDirections[] = {
-    {1, 0}, {-1, 0}, {0, -1}, {0, 1}};
-
+static const std::pair<int, int> kKnightMoves[] = {
+    {1, 2}, {-1, 2}, {1, -2}, {-1, -2}, {2, 1}, {2, -1}, {-2, 1}, {-2, -1}};
+  
+static const std::pair<int, int> kMandarinMoves[] = {
+	{1, 1}, {-1, 1}, {1, -1}, {-1, -1}}; 
+  
+// include kCannonDirection
+static const std::pair<int, int> kRookDirections[] = {
+	{1, 0}, {-1, 0}, {0, 1}, {0, -1}}; 
 }  // namespace
 
 MoveList ChessBoard::GeneratePseudolegalMoves() const {
@@ -69,6 +77,16 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
         const auto dst_row = our_king_.row() + delta.first;
         const auto dst_col = our_king_.col() + delta.second;
         if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+        if (our_king_.col() == their_king_.col()) {
+            bool face = true;
+            for (int count_row=0; count_row<9 ; count_row++){
+                const BoardSquare block(count_row, our_king_.col());
+                if (count_row>our_king_.row() && count_row<their_king_.row()){
+                    if(our_pieces_.get(block) || their_king_.get(block)) {face = false;}
+                }
+            }
+            if (face = true) continue;
+        } // Judge face
         const BoardSquare destination(dst_row, dst_col);
         if (our_pieces_.get(destination)) continue;
         if (IsUnderAttack(destination)) continue;

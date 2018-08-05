@@ -80,16 +80,6 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
         const auto dst_row = our_king_.row() + delta.first;
         const auto dst_col = our_king_.col() + delta.second;
         if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
-        if (dst_col == their_king_.col()) {
-            bool face = true;
-            for (int count_row = 0; count_row <= 9 ; count_row++) {
-                const BoardSquare block(count_row, dst_col);
-                if (count_row > dst_row && count_row < their_king_.row()) {
-                    if(our_pieces_.get(block) || their_king_.get(block)) {face = false;}
-                }
-            }
-            if (face = true) continue;
-        } // Judge face
         if (dst_row > 2 || dst_col < 3 || dst_col > 5) continue;
         const BoardSquare destination(dst_row, dst_col);
         if (our_pieces_.get(destination)) continue;
@@ -122,7 +112,7 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
             for (const auto& delta : kBishopMoves) {
                 const auto dst_row = source.row() + delta.first;
                 const auto dst_col = source.col() + delta.second; 
-                const BoardSquare block(delta.first/2, delta.second/2);
+                const BoardSquare block((source.row()+dst_row)/2, (source.col()+dst_col)/2);
                 if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
                 if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
                 if (dst_row > 4) continue;
@@ -150,7 +140,7 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
             for (const auto& delta : kKnightMoves) {
                 const auto dst_row = source.row() + delta.first;
                 const auto dst_col = source.col() + delta.second;
-                const BoardSquare block(delta.first/2, delta.second/2);
+                const BoardSquare block(source.row()+delta.first/2, source.col()+delta.second/2);
                 if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
                 if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
                 const BoardSquare destination(dst_row, dst_col);
@@ -296,7 +286,11 @@ bool ChessBoard::IsUnderAttack(BoardSquare square) const {
         auto dst_row = row + delta.first;
         auto dst_col = col + delta.second; 
         const BoardSquare destination(dst_row, dst_col);
-        if (pawns_.get(destination)) return true;
+        if (our_pieces_.get(destination)) break;
+        if (their_pieces_get(destination)){
+            if (pawns_.get(destination)) return true;
+            break;
+        }
     }
     // Check knights
     for (const auto& delta : kKnightMoves){
@@ -304,7 +298,27 @@ bool ChessBoard::IsUnderAttack(BoardSquare square) const {
         auto dst_col = col + delta.second;
         if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
         const BoardSquare destination(dst_row, dst_col);
-        if (knights_.get(destination)) return true;
+        if (knights_.get(destination) && their_pieces_.get(destination)) {
+            const BoardSquare block(dst_row+delta.first/2,dst_col+delta.second/2);
+            if (!our_pieses_.get(block) && !their_pieces_.get(block)) return true
+        }
+    }
+    // Check Cannons
+    for (const auto& direction : kRookDirections) {
+        auto dst_row = row;
+        auto dst_col = col;
+        int count_block = 0;
+        while (true) {
+            dst_row += direction.first;
+            dst_col += direction.second;
+            if (!BoardSquare::IsValid(dst_row, dst_col)) break;
+            const BoardSquare destination(dst_row, dst_col);
+            if (our_pieces_.get(destination) || their_pieces_.get(destination)) count_block++;
+            if (count_block == 1) continue;
+            if (count_block == 2) {
+                if(Cannons_.get(destination) && their_pieces_.get(destination)) return true;
+            }
+            if (count_block == 2) break;
     }
     return false;
 }

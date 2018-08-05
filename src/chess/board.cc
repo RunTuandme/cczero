@@ -53,13 +53,24 @@ void ChessBoard::Mirror() {
 }
 
 namespace {
-static const BitBoard kKingMoves[] = {};
+static const BitBoard kPawnMoves[] = {
+  {1, 0}, {0,  1}, {0, -1}}
+  
+static const BitBoard kKingMoves[] = {
+	{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-static const BitBoard kBishopMoves[] = {};
+static const BitBoard kBishopMoves[] = {
+	{2, 2}, {2, -2}, {-2, 2}, {-2, -2}};
 
-static const std::pair<int, int> kKnightDirections[] = {
-    {1, 0}, {-1, 0}, {0, -1}, {0, 1}};
-
+static const std::pair<int, int> kKnightMoves[] = {
+	{1, 2}, {-1, 2}, {1, -2}, {-1, -2}, {2, 1}, {2, -1}, {-2, 1}, {-2, -1}};
+  
+static const std::pair<int, int> kMandarinMoves[] = {
+	{1, 1}, {-1, 1}, {1, -1}, {-1, -1}}; 
+  
+// include kCannonDirection
+static const std::pair<int, int> kRookDirections[] = {
+	{1, 0}, {-1, 0}, {0, 1}, {0, -1}}; 
 }  // namespace
 
 MoveList ChessBoard::GeneratePseudolegalMoves() const {
@@ -69,6 +80,17 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
         const auto dst_row = our_king_.row() + delta.first;
         const auto dst_col = our_king_.col() + delta.second;
         if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+        if (dst_col == their_king_.col()) {
+            bool face = true;
+            for (int count_row = 0; count_row <= 9 ; count_row++) {
+                const BoardSquare block(count_row, dst_col);
+                if (count_row > dst_row && count_row < their_king_.row()) {
+                    if(our_pieces_.get(block) || their_king_.get(block)) {face = false;}
+                }
+            }
+            if (face = true) continue;
+        } // Judge face
+        if (dst_row > 2 || dst_col < 3 || dst_col > 5) continue;
         const BoardSquare destination(dst_row, dst_col);
         if (our_pieces_.get(destination)) continue;
         if (IsUnderAttack(destination)) continue;
@@ -97,76 +119,75 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
         // Bishop
         if (bishops_.get(source)) {
             processed_piece = true;
-            for (const auto& direction : kBishopDirections) {
+            for (const auto& delta : kBishopMoves) {
+                const auto dst_row = source.row() + delta.first;
+                const auto dst_col = source.col() + delta.second; 
+                const BoardSquare block(delta.first/2, delta.second/2);
+                if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+                if (dst_row > 4) continue;
+                const BoardSquare destination(dst_row, dst_col);
+                if (our_pieces_.get(destination)) continue;
+                result.emplace_back(source, destination);
+                }
+        }
+        if (processed_piece) continue;
+        // Pawns
+        if (pawns_.get(source)) {
+            for (const auto& delta : kPawnMoves) {
+                const auto dst_row = source.row() + delta.first;
+                const auto dst_col = source.col() + delta.second; 
+                if (source.row() < 5 && delta.second != 0) continue;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+                const BoardSquare destination(dst_row, dst_col);
+                if (our_pieces_.get(destination)) continue;
+                result.emplace_back(source, destination);
+                }
+            }
+        }
+        // Knight
+        if (knights_.get(source)){
+            for (const auto& delta : kKnightMoves) {
+                const auto dst_row = source.row() + delta.first;
+                const auto dst_col = source.col() + delta.second;
+                const BoardSquare block(delta.first/2, delta.second/2);
+                if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+                const BoardSquare destination(dst_row, dst_col);
+                if (our_pieces_.get(destination)) continue;
+                result.emplace_back(source, destination);
+                }
+            }
+        }
+        // Cannon
+        if (Cannons_.get(source)){
+            for (const auto& direction : kRookDirections) {
                 auto dst_row = source.row();
                 auto dst_col = source.col();
+                int count_block = 0;
                 while (true) {
                     dst_row += direction.first;
                     dst_col += direction.second;
                     if (!BoardSquare::IsValid(dst_row, dst_col)) break;
                     const BoardSquare destination(dst_row, dst_col);
-                    if (our_pieces_.get(destination)) break;
+                    if (our_pieces_.get(destination) || their_pieces_.get(destination)) count_block++;
+                    if (count_block == 1) continue;
+                    if (count_block == 2) {
+                        if(!their_pieces_.get(destination)) break;
+                    }
                     result.emplace_back(source, destination);
-                    if (their_pieces_.get(destination)) break;
+                    if (count_block == 2) break;
                 }
             }
         }
-        if (processed_piece) continue;
-        // Pawns.
-        if (pawns_.get(source)) {
-            // Moves forward.
-            {
-                const auto dst_row = source.row() + 1;
-                const auto dst_col = source.col();
+        // Mandarin
+        if (Mandarins_get(source)){
+            for (const auto& delta : kMandarinMoves) {
+                const auto dst_row = source.row() + delta.first;
+                const auto dst_col = source.col() + delta.second; 
+                if (dst_row > 2 || dst_col < 3 || dst_col > 5) continue;
+                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
                 const BoardSquare destination(dst_row, dst_col);
-
-                if (!our_pieces_.get(destination) &&
-                    !their_pieces_.get(destination)) {
-                    if (dst_row != 7) {
-                        result.emplace_back(source, destination);
-                        if (dst_row == 2) {
-                            // Maybe it'll be possible to move two squares.
-                            if (!our_pieces_.get(3, dst_col) &&
-                                !their_pieces_.get(3, dst_col)) {
-                                result.emplace_back(source,
-                                                    BoardSquare(3, dst_col));
-                            }
-                        }
-                    } else {
-                        // Promotions
-                        for (auto promotion : kPromotions) {
-                            result.emplace_back(source, destination, promotion);
-                        }
-                    }
-                }
-            }
-            // Captures.
-            {
-                for (auto direction : {-1, 1}) {
-                    const auto dst_row = source.row() + 1;
-                    const auto dst_col = source.col() + direction;
-                    if (dst_col < 0 || dst_col >= 8) continue;
-                    const BoardSquare destination(dst_row, dst_col);
-                    if (their_pieces_.get(destination)) {
-                        if (dst_row == 7) {
-                            // Promotion.
-                        } else {
-                            // Ordinary capture.
-                            result.emplace_back(source, destination);
-                        }
-                    } else if (dst_row == 5 && pawns_.get(7, dst_col)) {
-                        // En passant.
-                        // "Pawn" on opponent's file 8 means that en passant is
-                        // possible. Those fake pawns are reset in ApplyMove.
-                        result.emplace_back(source, destination);
-                    }
-                }
-            }
-            continue;
-        }
-        // Knight.
-        {
-            for (const auto destination : kKnightAttacks[source.as_int()]) {
                 if (our_pieces_.get(destination)) continue;
                 result.emplace_back(source, destination);
             }
@@ -241,57 +262,49 @@ bool ChessBoard::IsUnderAttack(BoardSquare square) const {
     const int col = square.col();
     // Check king
     {
-        const int krow = their_king_.row();
-        const int kcol = their_king_.col();
-        if (std::abs(krow - row) <= 1 && std::abs(kcol - col) <= 1) return true;
-    }
-    // Check Rooks (and queen)
-    if (kRookAttacks[square.as_int()].intersects(their_pieces_ * rooks_)) {
-        for (const auto& direction : kRookDirections) {
-            auto dst_row = row;
-            auto dst_col = col;
-            while (true) {
-                dst_row += direction.first;
-                dst_col += direction.second;
-                if (!BoardSquare::IsValid(dst_row, dst_col)) break;
-                const BoardSquare destination(dst_row, dst_col);
-                if (our_pieces_.get(destination)) break;
-                if (their_pieces_.get(destination)) {
-                    if (rooks_.get(destination)) return true;
-                    break;
+        if (col == kcol) {
+            bool face = true;
+            const int krow = their_king_.row();
+            const int kcol = their_king_.col();
+            for (int count_row = 0; count_row <= 9 ; count_row++) {
+                const BoardSquare block(count_row, col);
+                if (count_row > row && count_row < krow) {
+                    if(our_pieces_.get(block) || their_pieces_.get(block)) {face = false;}
                 }
             }
+            if (face = true) return true;
         }
     }
-    // Check Bishops
-    if (kBishopAttacks[square.as_int()].intersects(their_pieces_ * bishops_)) {
-        for (const auto& direction : kBishopDirections) {
-            auto dst_row = row;
-            auto dst_col = col;
-            while (true) {
-                dst_row += direction.first;
-                dst_col += direction.second;
-                if (!BoardSquare::IsValid(dst_row, dst_col)) break;
-                const BoardSquare destination(dst_row, dst_col);
-                if (our_pieces_.get(destination)) break;
-                if (their_pieces_.get(destination)) {
-                    if (bishops_.get(destination)) return true;
-                    break;
-                }
+    // Check Rooks
+    for (const auto& direction : kRookDirections) {
+        auto dst_row = row;
+        auto dst_col = col;
+        while (true) {
+            dst_row += direction.first;
+            dst_col += direction.second;
+            if (!BoardSquare::IsValid(dst_row, dst_col)) break;
+            const BoardSquare destination(dst_row, dst_col);
+            if (our_pieces_.get(destination)) break;
+            if (their_pieces_.get(destination)) {
+                if (rooks_.get(destination)) return true;
+                break;
             }
         }
     }
     // Check pawns
-    if (kPawnAttacks[square.as_int()].intersects(their_pieces_ * pawns_)) {
-        return true;
+    for (const auto& delta : kPawnMoves){
+        auto dst_row = row + delta.first;
+        auto dst_col = col + delta.second; 
+        const BoardSquare destination(dst_row, dst_col);
+        if (pawns_.get(destination)) return true;
     }
     // Check knights
-    {
-        if (kKnightAttacks[square.as_int()].intersects(
-                their_pieces_ - their_king_ - rooks_ - bishops_ -
-                (pawns_ * kPawnMask))) {
-            return true;
-        }
+    for (const auto& delta : kKnightMoves){
+        auto dst_row = row + delta.first;
+        auto dst_col = col + delta.second;
+        if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
+        const BoardSquare destination(dst_row, dst_col);
+        if (knights_.get(destination)) return true;
     }
     return false;
 }

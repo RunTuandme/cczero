@@ -54,7 +54,7 @@ void ChessBoard::Mirror() {
 
 namespace {
 static const BitBoard kPawnMoves[] = {
-  {1, 0}, {0,  1}, {0, -1}}
+	{1, 0}, {0,  1}, {0, -1}}
   
 static const BitBoard kKingMoves[] = {
 	{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
@@ -65,7 +65,7 @@ static const BitBoard kBishopMoves[] = {
 static const std::pair<int, int> kKnightMoves[] = {
 	{1, 2}, {-1, 2}, {1, -2}, {-1, -2}, {2, 1}, {2, -1}, {-2, 1}, {-2, -1}};
   
-static const std::pair<int, int> kMandarinMoves[] = {
+static const std::pair<int, int> kAdvisorMoves[] = {
 	{1, 1}, {-1, 1}, {1, -1}, {-1, -1}}; 
   
 // include kCannonDirection
@@ -80,16 +80,6 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
         const auto dst_row = our_king_.row() + delta.first;
         const auto dst_col = our_king_.col() + delta.second;
         if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
-        if (dst_col == their_king_.col()) {
-            bool face = true;
-            for (int count_row = 0; count_row <= 9 ; count_row++) {
-                const BoardSquare block(count_row, dst_col);
-                if (count_row > dst_row && count_row < their_king_.row()) {
-                    if(our_pieces_.get(block) || their_king_.get(block)) {face = false;}
-                }
-            }
-            if (face = true) continue;
-        } // Judge face
         if (dst_row > 2 || dst_col < 3 || dst_col > 5) continue;
         const BoardSquare destination(dst_row, dst_col);
         if (our_pieces_.get(destination)) continue;
@@ -122,7 +112,7 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
             for (const auto& delta : kBishopMoves) {
                 const auto dst_row = source.row() + delta.first;
                 const auto dst_col = source.col() + delta.second; 
-                const BoardSquare block(delta.first/2, delta.second/2);
+                const BoardSquare block((source.row()+dst_row)/2, (source.col()+dst_col)/2);
                 if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
                 if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
                 if (dst_row > 4) continue;
@@ -150,7 +140,7 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
             for (const auto& delta : kKnightMoves) {
                 const auto dst_row = source.row() + delta.first;
                 const auto dst_col = source.col() + delta.second;
-                const BoardSquare block(delta.first/2, delta.second/2);
+                const BoardSquare block(source.row()+delta.first/2, source.col()+delta.second/2);
                 if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
                 if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
                 const BoardSquare destination(dst_row, dst_col);
@@ -160,7 +150,7 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
             }
         }
         // Cannon
-        if (Cannons_.get(source)){
+        if (cannons_.get(source)){
             for (const auto& direction : kRookDirections) {
                 auto dst_row = source.row();
                 auto dst_col = source.col();
@@ -180,9 +170,9 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
                 }
             }
         }
-        // Mandarin
-        if (Mandarins_get(source)){
-            for (const auto& delta : kMandarinMoves) {
+        // Advisor
+        if (advisors_get(source)){
+            for (const auto& delta : kAdvisorMoves) {
                 const auto dst_row = source.row() + delta.first;
                 const auto dst_col = source.col() + delta.second; 
                 if (dst_row > 2 || dst_col < 3 || dst_col > 5) continue;
@@ -261,7 +251,7 @@ bool ChessBoard::IsUnderAttack(BoardSquare square) const {
     const int row = square.row();
     const int col = square.col();
     // Check king
-    {
+    if (our_king_.get(square)) {
         if (col == kcol) {
             bool face = true;
             const int krow = their_king_.row();
@@ -272,7 +262,19 @@ bool ChessBoard::IsUnderAttack(BoardSquare square) const {
                     if(our_pieces_.get(block) || their_pieces_.get(block)) {face = false;}
                 }
             }
-            if (face = true) return true;
+            if (face == true) return true;
+        }
+    }
+    else {
+        for (const auto& delta : kKingMoves) {
+            auto dst_row = row + delta.first;
+            auto dst_col = col + delta.second; 
+            const BoardSquare destination(dst_row, dst_col);
+            if (our_pieces_.get(destination)) break;
+            if (their_pieces_get(destination)) {
+                if (their_king_.get(destination)) return true;
+            break;
+            }
         }
     }
     // Check Rooks
@@ -292,19 +294,43 @@ bool ChessBoard::IsUnderAttack(BoardSquare square) const {
         }
     }
     // Check pawns
-    for (const auto& delta : kPawnMoves){
+    for (const auto& delta : kPawnMoves) {
         auto dst_row = row + delta.first;
         auto dst_col = col + delta.second; 
         const BoardSquare destination(dst_row, dst_col);
-        if (pawns_.get(destination)) return true;
+        if (our_pieces_.get(destination)) break;
+        if (their_pieces_get(destination)) {
+            if (pawns_.get(destination)) return true;
+            break;
+        }
     }
     // Check knights
-    for (const auto& delta : kKnightMoves){
+    for (const auto& delta : kKnightMoves) {
         auto dst_row = row + delta.first;
         auto dst_col = col + delta.second;
         if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
         const BoardSquare destination(dst_row, dst_col);
-        if (knights_.get(destination)) return true;
+        if (knights_.get(destination) && their_pieces_.get(destination)) {
+            const BoardSquare block(dst_row+delta.first/2,dst_col+delta.second/2);
+            if (!our_pieses_.get(block) && !their_pieces_.get(block)) return true
+        }
+    }
+    // Check Cannons
+    for (const auto& direction : kRookDirections) {
+        auto dst_row = row;
+        auto dst_col = col;
+        int count_block = 0;
+        while (true) {
+            dst_row += direction.first;
+            dst_col += direction.second;
+            if (!BoardSquare::IsValid(dst_row, dst_col)) break;
+            const BoardSquare destination(dst_row, dst_col);
+            if (our_pieces_.get(destination) || their_pieces_.get(destination)) count_block++;
+            if (count_block == 1) continue;
+            if (count_block == 2) {
+                if(Cannons_.get(destination) && their_pieces_.get(destination)) return true;
+            }
+            if (count_block == 2) break;
     }
     return false;
 }

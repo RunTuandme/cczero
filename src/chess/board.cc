@@ -321,52 +321,14 @@ bool ChessBoard::IsUnderAttack(BoardSquare square) const {
 bool ChessBoard::IsLegalMove(Move move) const {
     const auto& from = move.from();
     const auto& to = move.to();
+    
+    // If it's kings move, check that destination
+    // is not under attack.
+    if (from == our_king_) return true;
 
     ChessBoard board(*this);
     board.ApplyMove(move);
     if (board.IsUnderAttack(board.our_king_)) return false;
-
-    // If it's kings move, check that destination
-    // is not under attack.
-    if (from == our_king_) {
-        return true;
-    }
-
-    // Not check that piece was pinned. And it was, check that after the move
-    // it is still on like of attack.
-    int dx = from.col() - our_king_.col();
-    int dy = from.row() - our_king_.row();
-
-    // If it's not on the same file/rank/diagonal as our king, cannot be pinned.
-    if (dx != 0 && dy != 0 && std::abs(dx) != std::abs(dy)) return true;
-    dx = (dx > 0) - (dx < 0);  // Sign.
-    dy = (dy > 0) - (dy < 0);
-    auto col = our_king_.col();
-    auto row = our_king_.row();
-    while (true) {
-        col += dx;
-        row += dy;
-        // Attacking line left board, good.
-        if (!BoardSquare::IsValid(row, col)) return true;
-        const BoardSquare square(row, col);
-        // The source square of the move is now free.
-        if (square == from) continue;
-        // The destination square if the move is our piece. King is not under
-        // attack.
-        if (square == to) return true;
-        // Our piece on the line. Not under attack.
-        if (our_pieces_.get(square)) return true;
-        if (their_pieces_.get(square)) {
-            if (dx == 0 || dy == 0) {
-                // Have to be afraid of rook-like piece.
-                return !rooks_.get(square);
-            } else {
-                // Have to be afraid of bishop-like piece.
-                return !bishops_.get(square);
-            }
-            return true;
-        }
-    }
 }
 
 MoveList ChessBoard::GenerateLegalMoves() const {

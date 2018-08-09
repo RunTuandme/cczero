@@ -53,13 +53,13 @@ void ChessBoard::Mirror() {
 }
 
 namespace {
-static const BitBoard kPawnMoves[] = {
+static const std::pair<int, int> kPawnMoves[] = {
 	{1, 0}, {0,  1}, {0, -1}}
   
-static const BitBoard kKingMoves[] = {
+static const std::pair<int, int> kKingMoves[] = {
 	{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-static const BitBoard kBishopMoves[] = {
+static const std::pair<int, int> kBishopMoves[] = {
 	{2, 2}, {2, -2}, {-2, 2}, {-2, -2}};
 
 static const std::pair<int, int> kKnightMoves[] = {

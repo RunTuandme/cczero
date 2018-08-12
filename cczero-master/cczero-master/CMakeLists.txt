@@ -1,0 +1,70 @@
+cmake_minimum_required(VERSION 3.10)
+project(cczero)
+
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(src)
+include_directories(src/chess)
+include_directories(src/mcts)
+include_directories(src/neural)
+include_directories(src/selfplay)
+include_directories(src/utils)
+
+add_executable(cczero
+        src/chess/bitboard.h
+        src/chess/move.cc
+        src/chess/move.h
+        src/chess/board.cc
+        src/chess/board.h
+        src/chess/callbacks.h
+        src/chess/position.cc
+        src/chess/position.h
+        src/chess/uciloop.cc
+        src/chess/uciloop.h
+        src/mcts/node.cc
+        src/mcts/node.h
+        src/mcts/search.cc
+        src/mcts/search.h
+        src/neural/cache.cc
+        src/neural/cache.h
+        src/neural/encoder.cc
+        src/neural/encoder.h
+        src/neural/factory.cc
+        src/neural/factory.h
+        src/neural/loader.cc
+        src/neural/loader.h
+        src/neural/network.h
+        src/neural/network_cudnn.cu
+        src/neural/writer.cc
+        src/neural/writer.h
+        src/selfplay/game.cc
+        src/selfplay/game.h
+        src/selfplay/loop.cc
+        src/selfplay/loop.h
+        src/selfplay/tournament.cc
+        src/selfplay/tournament.h
+        src/utils/bititer.h
+        src/utils/cache.h
+        src/utils/commandline.cc
+        src/utils/commandline.h
+        src/utils/cppattributes.h
+        src/utils/exception.h
+        src/utils/filesystem.h
+        src/utils/filesystem.posix.cc
+        src/utils/filesystem.win32.cc
+        src/utils/hashcat.h
+        src/utils/mutex.h
+        src/utils/optional.h
+        src/utils/optionsdict.cc
+        src/utils/optionsdict.h
+        src/utils/optionsparser.cc
+        src/utils/optionsparser.h
+        src/utils/random.cc
+        src/utils/random.h
+        src/utils/smallarray.h
+        src/utils/string.cc
+        src/utils/string.h
+        src/engine.cc
+        src/engine.h
+        src/main.cc
+        src/version.inc)

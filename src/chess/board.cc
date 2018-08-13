@@ -209,19 +209,13 @@ static const BitBoard kKnightAttacks[] = {
 MoveList ChessBoard::GeneratePseudolegalMoves() const {
     MoveList result;
     // King
-    for (const auto& delta : kKingMoves) {
-        const auto dst_row = our_king_.row() + delta.first;
-        const auto dst_col = our_king_.col() + delta.second;
-        if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
-        if (dst_row > 2 || dst_col < 3 || dst_col > 5) continue;
-        const BoardSquare destination(dst_row, dst_col);
+    for (const auto destination : kKingPos.find(our_king_.as_int()).second) {
         if (our_pieces_.get(destination)) continue;
         if (IsUnderAttack(destination)) continue;
         result.emplace_back(our_king_, destination);
     }
-
+    // Other pieces
     for (auto source : our_pieces_ - our_king_) {
-        bool processed_piece = false;
         // Rook
         if (rooks_.get(source)) {
             processed_piece = true;
@@ -238,43 +232,35 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
                     if (their_pieces_.get(destination)) break;
                 }
             }
+            continue;
         }
         // Bishop
         if (bishops_.get(source)) {
-            processed_piece = true;
-            for (const auto& delta : kBishopMoves) {
-                const auto dst_row = source.row() + delta.first;
-                const auto dst_col = source.col() + delta.second; 
-                const BoardSquare block((source.row()+dst_row)/2, (source.col()+dst_col)/2);
-                if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
-                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
-                if (dst_row > 4) continue;
-                const BoardSquare destination(dst_row, dst_col);
+            for (const auto destination : kBishopPos.find(source.as_int()).second) {
                 if (our_pieces_.get(destination)) continue;
+                const BoardSquare block((source.row()+destination.row())/2, (source.col()+destination.col())/2);
+                if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
                 result.emplace_back(source, destination);
-                }
+            }
+            continue;
         }
-        if (processed_piece) continue;
         // Pawns
-        if (pawns_.get(source)){
-            for (const auto destination : kPawnAttacks[source.as_int()] {
+        if (pawns_.get(source)) {
+            for (const auto destination : kPawnAttacks[source.as_int()]) {
                 if (our_pieces_.get(destination)) continue;
                 result.emplace_back(source, destination);
             }
+            continue;
         }
         // Knight
-        if (knights_.get(source)){
-            for (const auto& delta : kKnightMoves) {
-                const auto dst_row = source.row() + delta.first;
-                const auto dst_col = source.col() + delta.second;
-                const BoardSquare block(source.row()+delta.first/2, source.col()+delta.second/2);
-                if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
-                if (!BoardSquare::IsValid(dst_row, dst_col)) continue;
-                const BoardSquare destination(dst_row, dst_col);
+        if (knights_.get(source)) {
+            for (const auto destination : kKnightAttacks[source.as_int()]) {
                 if (our_pieces_.get(destination)) continue;
+                const BoardSquare block((source.row()+destination.row())/2, (source.col()+destination.col())/2);
+                if (our_pieces_.get(block) || their_pieces_.get(block)) continue;
                 result.emplace_back(source, destination);
-                }
             }
+            continue;
         }
         // Cannon
         if (cannons_.get(source)){
@@ -296,9 +282,10 @@ MoveList ChessBoard::GeneratePseudolegalMoves() const {
                     if (count_block == 2) break;
                 }
             }
+            continue;
         }
         // Advisor
-        if (advisors_.get(source)){
+        if (advisors_.get(source)) {
             for (const auto destination : kAdvisorPos.find(source.as_int()).second) {
                 if (our_pieces_.get(destination)) continue;
                 result.emplace_back(source, destination);

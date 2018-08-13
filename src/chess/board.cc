@@ -342,12 +342,13 @@ bool ChessBoard::ApplyMove(Move move) {
 bool ChessBoard::IsUnderAttack(BoardSquare square) const {
     const int row = square.row();
     const int col = square.col();
+    // Check their pieces that can attack this square:
     // Check king
     if (our_king_.get(square)) {
+	      const int krow = their_king_.row();
+        const int kcol = their_king_.col();
         if (col == kcol) {
             bool face = true;
-            const int krow = their_king_.row();
-            const int kcol = their_king_.col();
             for (int count_row = 0; count_row <= 9 ; count_row++) {
                 const BoardSquare block(count_row, col);
                 if (count_row > row && count_row < krow) {

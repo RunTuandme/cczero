@@ -77,6 +77,9 @@ class BoardSquare {
 // Square a1 is bit 0, square a8 is bit 7, square b1 is bit 8.
 class BitBoard {
    public:
+    constexpr BitBoard(std::uint64_t high, std::uint64_t low) {
+        board_ = (__uint128_t)(high) << 64 | (__uint128_t)(low);
+    }
     constexpr BitBoard(__uint128_t board) : board_(board) {}
     BitBoard() = default;
     BitBoard(const BitBoard&) = default;
